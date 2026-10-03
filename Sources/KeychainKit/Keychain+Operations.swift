@@ -12,13 +12,32 @@ internal import Security
 extension Keychain {
     // MARK: Create
 
+    #if canImport(LocalAuthentication)
+    /// Adds an item and returns its persistent reference.
+    ///
+    /// Requesting the reference costs nothing extra, so it is always returned and may be ignored.
+    /// Fails with `duplicateItem` when an item with the same primary key exists. An item whose
+    /// access control requires an application password needs `authenticationContext` here too.
+    @discardableResult
+    public func add<Class>(
+        _ item: borrowing Item<Class>,
+        authenticationContext: AuthenticationContext? = nil,
+    ) throws(KeychainError) -> PersistentReference {
+        try add(item, extra: authenticationContext.map { [Keys.useAuthenticationContext: $0.secValue] } ?? [:])
+    }
+    #else
     /// Adds an item and returns its persistent reference.
     ///
     /// Requesting the reference costs nothing extra, so it is always returned and may be ignored.
     /// Fails with `duplicateItem` when an item with the same primary key exists.
     @discardableResult
     public func add<Class>(_ item: borrowing Item<Class>) throws(KeychainError) -> PersistentReference {
-        var dictionary = item.attributes.secDictionary
+        try add(item, extra: [:])
+    }
+    #endif
+
+    private func add<Class>(_ item: borrowing Item<Class>, extra: SecDictionary) throws(KeychainError) -> PersistentReference {
+        var dictionary = item.attributes.secDictionary.merging(extra) { _, extra in extra }
         dictionary[Keys.itemClass] = .string(Class.secClass as String)
         if let data = item.data {
             dictionary[Keys.valueData] = .data(data)
@@ -246,6 +265,9 @@ private enum Keys {
     static let matchLimit = kSecMatchLimit as String
     static let matchLimitAll = kSecMatchLimitAll as String
     static let useDataProtectionKeychain = kSecUseDataProtectionKeychain as String
+    #if canImport(LocalAuthentication)
+    static let useAuthenticationContext = kSecUseAuthenticationContext as String
+    #endif
     #if os(macOS)
     static let useKeychain = kSecUseKeychain as String
     static let matchSearchList = kSecMatchSearchList as String
