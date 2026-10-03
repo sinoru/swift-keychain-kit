@@ -3,6 +3,17 @@
 
 import PackageDescription
 
+let commonSwiftSettings: [SwiftSetting] = [
+    .enableUpcomingFeature("ApproachableConcurrency"),
+    .enableUpcomingFeature("ExistentialAny"),
+    .enableUpcomingFeature("ImmutableWeakCaptures"),
+    .enableUpcomingFeature("InferIsolatedConformances"),
+    .enableUpcomingFeature("InternalImportsByDefault"),
+    .enableUpcomingFeature("MemberImportVisibility"),
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+    .strictMemorySafety(),
+]
+
 let package = Package(
     name: "KeychainKit",
     products: [
@@ -17,16 +28,12 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "KeychainKit",
-            swiftSettings: [
-                .enableUpcomingFeature("ApproachableConcurrency"),
-            ],
+            swiftSettings: commonSwiftSettings,
         ),
         .testTarget(
             name: "KeychainKitTests",
             dependencies: ["KeychainKit"],
-            swiftSettings: [
-                .enableUpcomingFeature("ApproachableConcurrency"),
-            ],
+            swiftSettings: commonSwiftSettings,
         ),
     ]
 )
