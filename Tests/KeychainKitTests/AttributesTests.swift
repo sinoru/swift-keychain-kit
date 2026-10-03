@@ -1,0 +1,74 @@
+//
+//  AttributesTests.swift
+//  KeychainKitTests
+//
+//  Copyright (c) 2026 Kang Jaehong
+//  SPDX-License-Identifier: Apache-2.0
+//
+
+import Foundation
+import Security
+import Testing
+
+@testable import KeychainKit
+
+@Suite struct AttributesTests {
+    @Test func accessibleProtectionIsStoredUnderTheAccessibleKey() {
+        var attributes = Attributes<GenericPassword>()
+        attributes.protection = .accessible(.afterFirstUnlock)
+        #expect(attributes.protection == .accessible(.afterFirstUnlock))
+        #expect(attributes.secDictionary == [kSecAttrAccessible as String: .string(kSecAttrAccessibleAfterFirstUnlock as String)])
+    }
+
+    @Test func accessControlProtectionIsEmittedAsAnObject() throws {
+        let control = try AccessControl(accessibility: .whenUnlocked, flags: .userPresence)
+        var attributes = Attributes<GenericPassword>()
+        attributes.protection = .accessControl(control)
+
+        #expect(attributes.protection == .accessControl(control))
+        #expect(attributes.secDictionary[kSecAttrAccessible as String] == nil)
+        guard case .object(let object)? = attributes.secDictionary[kSecAttrAccessControl as String] else {
+            Issue.record("expected an access control object")
+            return
+        }
+        #expect(CFGetTypeID(object.reference) == SecAccessControlGetTypeID())
+    }
+
+    @Test func settingOneProtectionFormClearsTheOther() throws {
+        var attributes = Attributes<GenericPassword>()
+        attributes.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked))
+        attributes.protection = .accessible(.whenUnlocked)
+        #expect(attributes.secDictionary[kSecAttrAccessControl as String] == nil)
+        #expect(attributes.protection == .accessible(.whenUnlocked))
+
+        attributes.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked))
+        #expect(attributes.secDictionary[kSecAttrAccessible as String] == nil)
+
+        attributes.protection = nil
+        #expect(attributes.isEmpty)
+    }
+
+    @Test func accessControlReadBackFromTheFrameworkIsOpaque() throws {
+        let control = try AccessControl(accessibility: .whenUnlocked, flags: .userPresence)
+        let attributes = Attributes<GenericPassword>(secDictionary: [kSecAttrAccessControl as String: .object(control.secObject)])
+        guard case .accessControl(let opaque)? = attributes.protection else {
+            Issue.record("expected an access control, got \(String(describing: attributes.protection))")
+            return
+        }
+        #expect(opaque.accessibility == nil)
+        #expect(opaque.flags == nil)
+        #expect(opaque.secObject == control.secObject)
+        #expect(opaque != control)
+    }
+
+    @Test func attributesAreHashableByContent() throws {
+        var first = Attributes<GenericPassword>()
+        first[.service] = "service"
+        first.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked, flags: .userPresence))
+        var second = Attributes<GenericPassword>()
+        second[.service] = "service"
+        second.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked, flags: .userPresence))
+        #expect(first == second)
+        #expect(first.hashValue == second.hashValue)
+    }
+}
