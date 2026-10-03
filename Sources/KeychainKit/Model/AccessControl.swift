@@ -21,6 +21,7 @@ public struct AccessControl: Hashable, Sendable {
 
     let secObject: SecObject
 
+    /// Creates the access control object now, so an unknown accessibility value fails here.
     public init(accessibility: Accessibility, flags: Flags = []) throws(KeychainError) {
         self.accessibility = accessibility
         self.flags = flags

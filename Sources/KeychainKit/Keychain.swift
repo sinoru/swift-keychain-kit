@@ -24,6 +24,7 @@ public struct Keychain: Sendable {
 
     let backend: any KeychainBackend
 
+    /// A keychain backed by the Security framework.
     public init(storage: Storage = .dataProtection, accessGroup: AccessGroup? = nil) {
         self.init(backend: SecurityBackend(), storage: storage, accessGroup: accessGroup)
     }

@@ -18,10 +18,12 @@ public struct KeychainError: Error, Sendable, Hashable {
     /// The status code the Security framework returned.
     public let status: OSStatus
 
+    /// Wraps a status the framework returned.
     public init(status: OSStatus) {
         self.status = status
     }
 
+    /// An error for one of the well-known codes.
     public init(code: Code) {
         self.status = code.rawValue
     }
@@ -97,6 +99,7 @@ extension KeychainError {
 }
 
 extension KeychainError: CustomStringConvertible {
+    /// The framework's message for the status, followed by the status in parentheses.
     public var description: String {
         if let message = securityErrorMessage(for: status) {
             return "\(message) (\(status))"

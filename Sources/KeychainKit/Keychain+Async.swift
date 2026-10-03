@@ -20,6 +20,7 @@ public import Foundation
 /// synchronous type.
 extension Keychain {
     #if canImport(LocalAuthentication)
+    /// The asynchronous form of ``add(_:authenticationContext:)``.
     @discardableResult
     @concurrent
     public func add<Class>(
@@ -30,6 +31,7 @@ extension Keychain {
         return try synchronous(item, authenticationContext)
     }
     #else
+    /// The asynchronous form of ``add(_:)``.
     @discardableResult
     @concurrent
     public func add<Class>(_ item: borrowing Item<Class>) async throws(KeychainError) -> PersistentReference {
@@ -38,54 +40,63 @@ extension Keychain {
     }
     #endif
 
+    /// The asynchronous form of ``first(matching:)``.
     @concurrent
     public func first<Class>(matching query: Query<Class>) async throws(KeychainError) -> Item<Class>? {
         let synchronous: (Query<Class>) throws(KeychainError) -> Item<Class>? = first(matching:)
         return try synchronous(query)
     }
 
+    /// The asynchronous form of ``attributes(matching:)``.
     @concurrent
     public func attributes<Class>(matching query: Query<Class>) async throws(KeychainError) -> Attributes<Class>? {
         let synchronous: (Query<Class>) throws(KeychainError) -> Attributes<Class>? = attributes(matching:)
         return try synchronous(query)
     }
 
+    /// The asynchronous form of ``data(matching:)``.
     @concurrent
     public func data<Class>(matching query: Query<Class>) async throws(KeychainError) -> Data? {
         let synchronous: (Query<Class>) throws(KeychainError) -> Data? = data(matching:)
         return try synchronous(query)
     }
 
+    /// The asynchronous form of ``persistentReference(matching:)``.
     @concurrent
     public func persistentReference<Class>(matching query: Query<Class>) async throws(KeychainError) -> PersistentReference? {
         let synchronous: (Query<Class>) throws(KeychainError) -> PersistentReference? = persistentReference(matching:)
         return try synchronous(query)
     }
 
+    /// The asynchronous form of ``all(matching:)``.
     @concurrent
     public func all<Class>(matching query: Query<Class>) async throws(KeychainError) -> [Item<Class>] {
         let synchronous: (Query<Class>) throws(KeychainError) -> [Item<Class>] = all(matching:)
         return try synchronous(query)
     }
 
+    /// The asynchronous form of ``allAttributes(matching:)``.
     @concurrent
     public func allAttributes<Class>(matching query: Query<Class>) async throws(KeychainError) -> [Attributes<Class>] {
         let synchronous: (Query<Class>) throws(KeychainError) -> [Attributes<Class>] = allAttributes(matching:)
         return try synchronous(query)
     }
 
+    /// The asynchronous form of ``allPersistentReferences(matching:)``.
     @concurrent
     public func allPersistentReferences<Class>(matching query: Query<Class>) async throws(KeychainError) -> [PersistentReference] {
         let synchronous: (Query<Class>) throws(KeychainError) -> [PersistentReference] = allPersistentReferences(matching:)
         return try synchronous(query)
     }
 
+    /// The asynchronous form of ``update(matching:with:)``.
     @concurrent
     public func update<Class>(matching query: Query<Class>, with changes: borrowing Item<Class>) async throws(KeychainError) {
         let synchronous: (Query<Class>, Item<Class>) throws(KeychainError) -> Void = update(matching:with:)
         try synchronous(query, changes)
     }
 
+    /// The asynchronous form of ``delete(matching:)``.
     @concurrent
     public func delete<Class>(matching query: Query<Class>) async throws(KeychainError) {
         let synchronous: (Query<Class>) throws(KeychainError) -> Void = delete(matching:)

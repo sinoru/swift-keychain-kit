@@ -35,10 +35,12 @@ public struct Query<Class: ItemClass>: Hashable, Sendable {
     public var authenticationContext: AuthenticationContext?
     #endif
 
+    /// A query for items with the given attributes; empty attributes match every item of the class.
     public init(_ attributes: Attributes<Class> = Attributes()) {
         self.attributes = attributes
     }
 
+    /// Reads or writes one required attribute; the same as going through `attributes`.
     public subscript<Value>(key: AttributeKey<Class, Value>) -> Value? {
         get { attributes[key] }
         set { attributes[key] = newValue }

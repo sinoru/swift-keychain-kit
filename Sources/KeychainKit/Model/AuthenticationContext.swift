@@ -21,8 +21,10 @@ public import LocalAuthentication
 ///
 /// Unavailable on tvOS, which has no LocalAuthentication framework.
 public struct AuthenticationContext: Hashable, @unchecked Sendable {
+    /// The wrapped context.
     public let context: LAContext
 
+    /// Wraps a context the caller has configured.
     public init(_ context: LAContext) {
         self.context = context
     }

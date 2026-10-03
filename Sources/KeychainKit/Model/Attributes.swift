@@ -21,6 +21,7 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
     /// framework exposes a `SecAccessControl` object but not the constraints inside it.
     private var accessControl: AccessControl?
 
+    /// No attributes set.
     public init() {
         storage = [:]
     }
@@ -51,11 +52,13 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
         return dictionary
     }
 
+    /// Reads or writes one attribute. Setting `nil` removes it.
     public subscript<Value>(key: AttributeKey<Class, Value>) -> Value? {
         get { storage[key.rawKey].flatMap(key.decode) }
         set { storage[key.rawKey] = newValue.map(key.encode) }
     }
 
+    /// Reads one framework-set attribute, such as a date.
     public subscript<Value>(key: ReadOnlyAttributeKey<Class, Value>) -> Value? {
         storage[key.rawKey].flatMap(key.decode)
     }

@@ -35,8 +35,10 @@ public enum Storage: Hashable, Sendable {
 /// `SecKeychain` is an immutable handle to the keychain file, which is why it is safe to pass
 /// between threads and the conformance is unchecked. Obtain one from the `SecKeychain*` API.
 public struct FileKeychain: Hashable, @unchecked Sendable {
+    /// The framework's handle.
     public let reference: SecKeychain
 
+    /// Wraps a handle obtained from the `SecKeychain*` API.
     public init(reference: SecKeychain) {
         self.reference = reference
     }
