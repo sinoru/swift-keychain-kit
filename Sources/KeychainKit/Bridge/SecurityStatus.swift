@@ -20,3 +20,10 @@ func securityErrorMessage(for status: OSStatus) -> String? {
     }
     return message as String
 }
+
+/// Turns a failing `OSStatus` into a thrown `KeychainError`.
+func check(_ status: OSStatus) throws(KeychainError) {
+    guard status == errSecSuccess else {
+        throw KeychainError(status: status)
+    }
+}
