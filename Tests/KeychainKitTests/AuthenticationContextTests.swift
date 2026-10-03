@@ -40,7 +40,7 @@ import Testing
         #expect(keychain.addDictionary(for: item, authenticationContext: nil)[kSecUseAuthenticationContext as String] == nil)
     }
 
-    @Test func dataQueriesInheritTheContextButNotTheSkipFlag() {
+    @Test func dataQueriesInheritTheContextAndTheSkipFlag() {
         let context = LAContext()
         var original = Query<GenericPassword>()
         original.authenticationContext = AuthenticationContext(context)
@@ -48,7 +48,7 @@ import Testing
         let keychain = Keychain()
         let dataQuery = keychain.dataQuery(for: Attributes(), reference: PersistentReference(rawValue: Data([1])), inheriting: original)
         #expect(dataQuery.authenticationContext == AuthenticationContext(context))
-        #expect(!dataQuery.skipsItemsRequiringAuthentication)
+        #expect(dataQuery.skipsItemsRequiringAuthentication)
         #expect(isSameContext(keychain.requestDictionary(for: dataQuery, returning: .data, all: false)[kSecUseAuthenticationContext as String], as: context))
     }
 

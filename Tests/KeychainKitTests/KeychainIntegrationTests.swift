@@ -58,23 +58,23 @@ import KeychainKitTestSupport
         try withKeychain { keychain in
             try keychain.add(item(account: "one", data: "secret"))
             let found = try #require(try keychain.first(matching: query(account: "one")))
-            #expect(found[.service] == Self.service)
-            #expect(found[.account] == "one")
+            #expect(found.service == Self.service)
+            #expect(found.account == "one")
             #expect(found.password == "secret")
-            #expect(found[.creationDate] != nil)
-            #expect(found[.modificationDate] != nil)
+            #expect(found.creationDate != nil)
+            #expect(found.modificationDate != nil)
         }
     }
 
     @Test func booleanAttributesRoundTripThroughTheFramework() throws {
         try withKeychain { keychain in
             var item = item(account: "one", data: "secret")
-            item[.isInvisible] = true
-            item[.isNegative] = false
+            item.isInvisible = true
+            item.isNegative = false
             try keychain.add(item)
             let found = try #require(try keychain.first(matching: query(account: "one")))
-            #expect(found[.isInvisible] == true)
-            #expect(found[.isNegative] == false)
+            #expect(found.isInvisible == true)
+            #expect(found.isNegative == false)
         }
     }
 
@@ -82,7 +82,7 @@ import KeychainKitTestSupport
         try withKeychain { keychain in
             try keychain.add(item(account: "one", data: "secret"))
             let attributes = try #require(try keychain.attributes(matching: query(account: "one")))
-            #expect(attributes[.account] == "one")
+            #expect(attributes.account == "one")
             #expect(try keychain.data(matching: query(account: "one")) == Data("secret".utf8))
         }
     }
@@ -108,7 +108,7 @@ import KeychainKitTestSupport
             var byReference = query()
             byReference.persistentReference = reference
             let found = try #require(try keychain.first(matching: byReference))
-            #expect(found[.account] == "one")
+            #expect(found.account == "one")
             #expect(found.password == "secret")
         }
     }
@@ -120,7 +120,7 @@ import KeychainKitTestSupport
             try keychain.add(item(account: "one", data: "1"))
             try keychain.add(item(account: "two", data: "2"))
             let items = try keychain.all(matching: query())
-            #expect(Set(items.compactMap { $0[.account] }) == ["one", "two"])
+            #expect(Set(items.compactMap { $0.account }) == ["one", "two"])
             #expect(Set(items.compactMap(\.password)) == ["1", "2"])
             #expect(try keychain.allAttributes(matching: query()).count == 2)
             #expect(try keychain.allPersistentReferences(matching: query()).count == 2)
@@ -134,13 +134,13 @@ import KeychainKitTestSupport
             try keychain.add(item(account: "one", data: "secret"))
             var changes = Item<GenericPassword>()
             changes.password = "changed"
-            changes[.comment] = "comment"
+            changes.comment = "comment"
             try keychain.update(matching: query(account: "one"), with: changes)
 
             let updated = try #require(try keychain.first(matching: query(account: "one")))
             #expect(updated.password == "changed")
-            #expect(updated[.comment] == "comment")
-            #expect(updated[.account] == "one")
+            #expect(updated.comment == "comment")
+            #expect(updated.account == "one")
         }
     }
 
@@ -149,9 +149,9 @@ import KeychainKitTestSupport
             try keychain.add(item(account: "one", data: "1"))
             try keychain.add(item(account: "two", data: "2"))
             var changes = Item<GenericPassword>()
-            changes[.comment] = "shared"
+            changes.comment = "shared"
             try keychain.update(matching: query(), with: changes)
-            let comments = try keychain.allAttributes(matching: query()).compactMap { $0[.comment] }
+            let comments = try keychain.allAttributes(matching: query()).compactMap { $0.comment }
             #expect(comments == ["shared", "shared"])
         }
     }
@@ -199,7 +199,7 @@ import KeychainKitTestSupport
             try await keychain.add(item(account: "two", data: "other"))
 
             #expect(try await keychain.first(matching: query(account: "one"))?.password == "secret")
-            #expect(try await keychain.attributes(matching: query(account: "one"))?[.account] == "one")
+            #expect(try await keychain.attributes(matching: query(account: "one"))?.account == "one")
             #expect(try await keychain.data(matching: query(account: "one")) == Data("secret".utf8))
             #expect(try await keychain.persistentReference(matching: query(account: "one")) == reference)
             #expect(try await keychain.all(matching: query()).count == 2)

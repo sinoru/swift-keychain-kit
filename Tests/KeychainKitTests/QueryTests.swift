@@ -15,8 +15,8 @@ import Testing
 @Suite struct QueryTests {
     @Test func includesClassAndAttributes() {
         var query = Query<GenericPassword>()
-        query[.service] = "service"
-        query[.account] = "account"
+        query.service = "service"
+        query.account = "account"
         #expect(query.secDictionary == [
             kSecClass as String: .string(kSecClassGenericPassword as String),
             kSecAttrService as String: .string("service"),
@@ -28,9 +28,11 @@ import Testing
         #expect(Query<InternetPassword>().secDictionary[kSecClass as String] == .string(kSecClassInternetPassword as String))
     }
 
-    @Test func synchronizableMatchOverridesTheAttributeKey() {
+    @Test func synchronizableMatchOverridesTheAttribute() {
+        // `query.synchronizable` is the match mode; the attribute of the same name is only
+        // reachable through `attributes`, and the match mode wins when the dictionary is built.
         var query = Query<GenericPassword>()
-        query[.synchronizable] = true
+        query.attributes.synchronizable = true
 
         query.synchronizable = .nonSynchronizableOnly
         #expect(query.secDictionary[kSecAttrSynchronizable as String] == nil)

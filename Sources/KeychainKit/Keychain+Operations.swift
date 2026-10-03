@@ -77,7 +77,10 @@ extension Keychain {
     ///
     /// The framework does not return data for more than one password item at a time, so this
     /// fetches the attributes and persistent references in one call and the data of each item
-    /// in a second. Use `allAttributes(matching:)` when the data is not needed.
+    /// in a second. An item whose data cannot be fetched in that second call, because the query
+    /// skips items requiring authentication or because the item was removed in between, is left
+    /// out rather than returned without data. Use `allAttributes(matching:)` when the data is
+    /// not needed.
     public func all<Class>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
         guard case .array(let values)? = try fetch(query, returning: [.attributes, .persistentReference], all: true) else {
             return []
@@ -86,7 +89,9 @@ extension Keychain {
         items.reserveCapacity(values.count)
         for value in values {
             let (attributes, reference) = try Self.attributesAndReference(from: value) as (Attributes<Class>, PersistentReference)
-            let data = try data(matching: dataQuery(for: attributes, reference: reference, inheriting: query))
+            guard let data = try data(matching: dataQuery(for: attributes, reference: reference, inheriting: query)) else {
+                continue
+            }
             items.append(Item(attributes: attributes, data: data))
         }
         return items
@@ -254,9 +259,9 @@ extension Keychain {
     ///
     /// It carries the item's own access group so that a search in a non-default group is not
     /// redirected to the default, matches synchronizable items too, and inherits the original
-    /// query's authentication context so a protected item is read with the credentials the
-    /// caller supplied. `skipsItemsRequiringAuthentication` is not inherited: the first call
-    /// already filtered those items out.
+    /// query's authentication settings. Both are needed in the second step: reading attributes
+    /// does not require authentication, so the first call returns protected items even when
+    /// asked to skip them, and it is the data fetch that must skip or authenticate.
     package func dataQuery<Class>(
         for attributes: Attributes<Class>,
         reference: PersistentReference,
@@ -265,7 +270,8 @@ extension Keychain {
         var query = Query<Class>()
         query.persistentReference = reference
         query.synchronizable = .any
-        query[.accessGroup] = attributes[.accessGroup]
+        query.accessGroup = attributes.accessGroup
+        query.skipsItemsRequiringAuthentication = original.skipsItemsRequiringAuthentication
         #if canImport(LocalAuthentication) && !os(tvOS)
         query.authenticationContext = original.authenticationContext
         #endif

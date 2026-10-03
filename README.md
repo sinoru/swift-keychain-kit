@@ -56,14 +56,14 @@ dependencies: [
 ### Items, attributes, and queries
 
 An `Item` belongs to one item class and carries `Attributes` plus optional secret `Data`.
-Each attribute has a typed key, and a key exists only for the classes it is valid for:
-`.service` on a generic password, `.server` and `.port` on an internet password, `.label`
-and `.accessGroup` on anything.
+Each attribute is a typed property that exists only for the classes it is valid for:
+`service` on a generic password, `server` and `port` on an internet password, `label` and
+`accessGroup` on anything. Using one on the wrong class does not compile.
 
 ```swift
 var item = Item(server: "example.com", account: "alice", password: "s3cret", internetProtocol: .https)
-item[.label] = "Example"
-item[.synchronizable] = true
+item.label = "Example"
+item.synchronizable = true
 ```
 
 A `Query` names the attributes an item must have. The method you pass it to decides how
@@ -121,7 +121,7 @@ The full guide lives in the DocC catalog under `Sources/KeychainKit/KeychainKit.
 * **The framework's semantics, not a new model.** Primary keys, duplicate and not-found
   statuses, synchronizable matching, and the result shape per combination of return keys
   are the framework's; the types only make them visible.
-* **Typed everywhere.** `Attributes` accept only valid keys for their class; `KeychainError`
+* **Typed everywhere.** `Attributes` expose only the properties valid for their class; `KeychainError`
   preserves the `OSStatus` and classifies the documented codes; every operation uses typed
   throws.
 * **`unsafe` stays in the bridge.** The only calls into Security's C API live in two files

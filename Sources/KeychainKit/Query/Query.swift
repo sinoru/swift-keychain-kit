@@ -12,14 +12,16 @@ internal import Security
 ///
 /// Every attribute set on the query must match exactly. How many items come back, and in what
 /// form, is decided by the `Keychain` method the query is passed to rather than by the query.
+/// Every writable attribute of `attributes` is reachable directly on the query, so
+/// `query.service` and `query.attributes.service` are the same thing.
 public struct Query<Class: ItemClass>: Hashable, Sendable {
     /// The attributes an item must have.
     public var attributes: Attributes<Class>
 
     /// Which items to consider with respect to iCloud Keychain.
     ///
-    /// This takes precedence over the `synchronizable` attribute key, because the framework's
-    /// third option, `kSecAttrSynchronizableAny`, is not a boolean.
+    /// This takes precedence over the `synchronizable` attribute, because the framework's third
+    /// option, `kSecAttrSynchronizableAny`, is not a boolean.
     public var synchronizable: SynchronizableMatch = .nonSynchronizableOnly
 
     /// Skip items that would prompt the user for authentication (`kSecUseAuthenticationUISkip`).
@@ -40,12 +42,6 @@ public struct Query<Class: ItemClass>: Hashable, Sendable {
     /// A query for items with the given attributes; empty attributes match every item of the class.
     public init(_ attributes: Attributes<Class> = Attributes()) {
         self.attributes = attributes
-    }
-
-    /// Reads or writes one required attribute; the same as going through `attributes`.
-    public subscript<Value>(key: AttributeKey<Class, Value>) -> Value? {
-        get { attributes[key] }
-        set { attributes[key] = newValue }
     }
 
     /// The dictionary for a `SecItem*` call, before any `kSecReturn*`, `kSecMatchLimit`, or

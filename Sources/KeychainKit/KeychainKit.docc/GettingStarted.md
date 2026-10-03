@@ -24,17 +24,17 @@ let item = Item(service: "com.example.app", account: "alice", password: "s3cret"
 let reference = try keychain.add(item)   // a PersistentReference you may keep or ignore
 ```
 
-Any attribute can be set through its typed key before adding:
+Any attribute can be set as a property before adding:
 
 ```swift
 var item = Item(service: "com.example.app", account: "alice", password: "s3cret")
-item[.label] = "Example account"
-item[.synchronizable] = true
+item.label = "Example account"
+item.synchronizable = true
 ```
 
 ### Find passwords
 
-A ``Query`` names the attributes an item must have. The method you pass it to decides how
+A ``Query`` names the attributes an item must have, as the same properties. The method you pass it to decides how
 many items come back and in what form. Nothing matching is not an error.
 
 ```swift
@@ -57,7 +57,7 @@ the framework returns data for only one password item at a time; use
 ```swift
 var changes = Item<GenericPassword>()
 changes.password = "n3w"
-changes[.comment] = "Rotated"
+changes.comment = "Rotated"
 try keychain.update(matching: query, with: changes)   // throws itemNotFound if nothing matches
 
 try keychain.delete(matching: query)                  // nothing matching is fine

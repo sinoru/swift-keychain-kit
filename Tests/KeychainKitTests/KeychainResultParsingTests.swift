@@ -30,8 +30,8 @@ import Testing
     @Test func itemSeparatesDataFromAttributes() throws {
         let item: Item<GenericPassword> = try Keychain.item(from: itemDictionary)
         #expect(item.data == Data("secret".utf8))
-        #expect(item[.service] == "service")
-        #expect(item[.creationDate] == created)
+        #expect(item.service == "service")
+        #expect(item.creationDate == created)
         #expect(item.attributes.storage[kSecValueData as String] == nil)
         #expect(item.attributes.storage[kSecValuePersistentRef as String] == nil)
         #expect(item.attributes.storage[kSecClass as String] == nil)
@@ -39,13 +39,13 @@ import Testing
 
     @Test func attributesDropNonAttributeEntries() throws {
         let attributes: Attributes<GenericPassword> = try Keychain.attributes(from: itemDictionary)
-        #expect(attributes[.account] == "account")
+        #expect(attributes.account == "account")
         #expect(attributes.storage[kSecValueData as String] == nil)
     }
 
     @Test func attributesAndReferenceSplitTheAllEntry() throws {
         let (attributes, reference): (Attributes<GenericPassword>, PersistentReference) = try Keychain.attributesAndReference(from: itemDictionary)
-        #expect(attributes[.service] == "service")
+        #expect(attributes.service == "service")
         #expect(reference == PersistentReference(rawValue: Data([7])))
     }
 

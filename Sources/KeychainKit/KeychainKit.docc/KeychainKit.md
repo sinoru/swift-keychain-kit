@@ -7,9 +7,9 @@ Swift concurrency built in.
 
 Keychain Services is a C API driven by `CFDictionary`s of `kSec*` keys. KeychainKit
 replaces those dictionaries with Swift types: an ``Item`` of one ``ItemClass`` whose
-``Attributes`` accept only the keys valid for that class, a ``Query`` that describes
-what to find, and a ``Keychain`` whose operations return `nil` or an empty array when
-nothing matches and throw a ``KeychainError`` otherwise.
+``Attributes`` are typed properties declared only for the classes they apply to, a
+``Query`` that describes what to find, and a ``Keychain`` whose operations return `nil`
+or an empty array when nothing matches and throw a ``KeychainError`` otherwise.
 
 ```swift
 let keychain = Keychain()
@@ -40,8 +40,6 @@ let item = try await keychain.first(matching: Query(service: "com.example.app", 
 
 - ``Item``
 - ``Attributes``
-- ``AttributeKey``
-- ``ReadOnlyAttributeKey``
 - ``ItemClass``
 - ``PasswordItemClass``
 - ``GenericPassword``

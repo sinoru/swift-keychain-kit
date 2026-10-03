@@ -8,11 +8,14 @@
 
 internal import Security
 
-/// The attributes of a keychain item of one class, keyed by `AttributeKey`.
+/// The attributes of a keychain item of one class.
 ///
-/// Protection is set through `protection` rather than a key, because `kSecAttrAccessible` and
-/// `kSecAttrAccessControl` describe the same thing in two forms and Apple's guidance is to set
-/// one or the other.
+/// Each attribute is a property, declared only for the item classes it is valid for: `service`
+/// exists on a generic password, `server` and `port` on an internet password, `label` and
+/// `accessGroup` on everything. Attributes the framework sets, such as `creationDate`, are
+/// read-only properties. Protection is set through `protection` rather than two separate
+/// attributes, because `kSecAttrAccessible` and `kSecAttrAccessControl` describe the same thing
+/// in two forms and Apple's guidance is to set one or the other.
 public struct Attributes<Class: ItemClass>: Hashable, Sendable {
     /// Every attribute except the access control object, by raw key.
     package var storage: SecDictionary
@@ -52,17 +55,6 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
         return dictionary
     }
 
-    /// Reads or writes one attribute. Setting `nil` removes it.
-    public subscript<Value>(key: AttributeKey<Class, Value>) -> Value? {
-        get { storage[key.rawKey].flatMap(key.decode) }
-        set { storage[key.rawKey] = newValue.map(key.encode) }
-    }
-
-    /// Reads one framework-set attribute, such as a date.
-    public subscript<Value>(key: ReadOnlyAttributeKey<Class, Value>) -> Value? {
-        storage[key.rawKey].flatMap(key.decode)
-    }
-
     /// How the item is protected: by device state alone, or by an access control object.
     ///
     /// Setting one form clears the other.
@@ -94,6 +86,16 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
     /// Whether no attribute, including protection, is set.
     public var isEmpty: Bool {
         storage.isEmpty && accessControl == nil
+    }
+
+    // MARK: Storage access for the attribute properties
+
+    func value<Value>(_ key: String, as read: (SecValue) -> Value?) -> Value? {
+        storage[key].flatMap(read)
+    }
+
+    mutating func setValue(_ value: SecValue?, for key: String) {
+        storage[key] = value
     }
 }
 

@@ -63,10 +63,10 @@ import Testing
 
     @Test func attributesAreHashableByContent() throws {
         var first = Attributes<GenericPassword>()
-        first[.service] = "service"
+        first.service = "service"
         first.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked, flags: .userPresence))
         var second = Attributes<GenericPassword>()
-        second[.service] = "service"
+        second.service = "service"
         second.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked, flags: .userPresence))
         #expect(first == second)
         #expect(first.hashValue == second.hashValue)

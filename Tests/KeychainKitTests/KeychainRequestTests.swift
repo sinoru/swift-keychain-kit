@@ -34,7 +34,7 @@ import KeychainKitTestSupport
         #expect(keychain.dictionary(for: query)[kSecAttrAccessGroup as String] == .string("TEAM.default"))
 
         var explicit = query
-        explicit[.accessGroup] = AccessGroup(rawValue: "TEAM.other")
+        explicit.accessGroup = AccessGroup(rawValue: "TEAM.other")
         #expect(keychain.dictionary(for: explicit)[kSecAttrAccessGroup as String] == .string("TEAM.other"))
 
         #expect(Keychain().dictionary(for: query)[kSecAttrAccessGroup as String] == nil)
@@ -42,7 +42,7 @@ import KeychainKitTestSupport
 
     @Test func addSendsClassDataAndAsksForAPersistentReference() {
         var item = Item<InternetPassword>(data: Data("secret".utf8))
-        item[.server] = "example.com"
+        item.server = "example.com"
         let dictionary = Keychain().addDictionary(for: item)
         #expect(dictionary[kSecClass as String] == .string(kSecClassInternetPassword as String))
         #expect(dictionary[kSecAttrServer as String] == .string("example.com"))
@@ -78,7 +78,7 @@ import KeychainKitTestSupport
     @Test func dataQueryCarriesReferenceGroupAndAnySynchronizable() {
         let keychain = Keychain(accessGroup: AccessGroup(rawValue: "TEAM.default"))
         var attributes = Attributes<GenericPassword>()
-        attributes[.accessGroup] = AccessGroup(rawValue: "TEAM.shared")
+        attributes.accessGroup = AccessGroup(rawValue: "TEAM.shared")
         let dictionary = keychain.requestDictionary(
             for: keychain.dataQuery(for: attributes, reference: PersistentReference(rawValue: Data([7])), inheriting: query),
             returning: .data,
@@ -112,9 +112,18 @@ import KeychainKitTestSupport
         #expect(dictionary[kSecAttrService as String] == .string("service"))
     }
 
+    @Test func dataQueryInheritsTheSkipFlag() {
+        let keychain = Keychain()
+        var skipping = query
+        skipping.skipsItemsRequiringAuthentication = true
+        let reference = PersistentReference(rawValue: Data([7]))
+        #expect(keychain.dataQuery(for: Attributes(), reference: reference, inheriting: skipping).skipsItemsRequiringAuthentication)
+        #expect(!keychain.dataQuery(for: Attributes(), reference: reference, inheriting: query).skipsItemsRequiringAuthentication)
+    }
+
     @Test func updateSendsOnlyTheChanges() {
         var changes = Item<GenericPassword>(data: Data("new".utf8))
-        changes[.label] = "label"
+        changes.label = "label"
         #expect(Keychain.updateDictionary(for: changes) == [
             kSecAttrLabel as String: .string("label"),
             kSecValueData as String: .data(Data("new".utf8)),
