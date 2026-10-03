@@ -43,9 +43,12 @@ import Testing
     }
 
     @Test func describesStatusWithMessageAndNumber() {
+        // The message comes from the framework in the process's locale, so only its presence
+        // is checked, not its wording: the description must be more than the numeric fallback.
         let error = KeychainError(code: .itemNotFound)
-        #expect(error.description.contains("-25300"))
-        #expect(error.description.contains("could not be found"))
+        #expect(error.description.hasSuffix("(-25300)"))
+        #expect(error.description != "OSStatus -25300")
+        #expect(error.description.count > "(-25300)".count)
         #expect(error.errorDescription == error.description)
         #expect(error.localizedDescription == error.description)
     }

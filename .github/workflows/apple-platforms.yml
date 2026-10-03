@@ -1,0 +1,121 @@
+# Builds the package for every Apple platform it declares support for, through
+# the Xcode build system, and runs its tests wherever a runner can boot the
+# destination. This package supports Apple platforms only and requires Swift
+# 6.4, so one workflow on one Xcode is the whole matrix.
+
+name: Apple Platforms
+
+# Pushes only fire on the branches git-flow keeps around; feature branches are
+# covered by the pull_request trigger. Only a change that can alter what is
+# built here runs it: a commit to the README runs nothing.
+on:
+  push:
+    branches: [main, develop, "release/**", "hotfix/**"]
+    paths: &paths
+      - Sources/**
+      - Tests/**
+      - Package.swift
+      - .github/workflows/apple-platforms.yml
+  pull_request:
+    branches: [main, develop, "release/**", "hotfix/**"]
+    paths: *paths
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.platform.name }}
+    # Xcode 27 ships only on the macOS 27 preview image.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    strategy:
+      fail-fast: false
+      # Device and simulator are separate SDKs and target triples, so they fail
+      # independently. The watchOS device row is the only one that compiles the
+      # arm64_32 slice, where `Int` is 32 bits; nothing can run it, so it stops
+      # after the build. A row that can run tests names its destination
+      # directly (macOS, Mac Catalyst) or by simulator runtime, resolved below
+      # against whatever device the image carries so a renamed device does not
+      # rot the matrix.
+      matrix:
+        platform:
+          - name: "macOS"
+            destination: "generic/platform=macOS"
+            test_destination: "platform=macOS"
+          - name: "Mac Catalyst"
+            destination: "generic/platform=macOS,variant=Mac Catalyst"
+            test_destination: "platform=macOS,variant=Mac Catalyst"
+          - name: "iOS"
+            destination: "generic/platform=iOS"
+          - name: "iOS Simulator"
+            destination: "generic/platform=iOS Simulator"
+            simulator_runtime: iOS
+          - name: "tvOS"
+            destination: "generic/platform=tvOS"
+          - name: "tvOS Simulator"
+            destination: "generic/platform=tvOS Simulator"
+            simulator_runtime: tvOS
+          - name: "watchOS"
+            destination: "generic/platform=watchOS"
+          - name: "watchOS Simulator"
+            destination: "generic/platform=watchOS Simulator"
+            simulator_runtime: watchOS
+          - name: "visionOS"
+            destination: "generic/platform=visionOS"
+          # visionOS answers to xrOS in CoreSimulator's runtime identifiers.
+          - name: "visionOS Simulator"
+            destination: "generic/platform=visionOS Simulator"
+            simulator_runtime: xrOS
+    steps:
+      - uses: actions/checkout@v7
+      - run: xcodebuild -version
+
+      # Release is the library as a client gets it, built without testability
+      # so the optimizer sees what ships. Debug is where `@testable import`
+      # works, which every test target here relies on, so it is the only
+      # configuration whose tests are built and run.
+      - name: xcodebuild build (Release)
+        run: |
+          xcodebuild build \
+            -scheme KeychainKit \
+            -destination '${{ matrix.platform.destination }}' \
+            -configuration Release \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData"
+
+      - name: xcodebuild build-for-testing (Debug)
+        run: |
+          xcodebuild build-for-testing \
+            -scheme KeychainKit \
+            -destination '${{ matrix.platform.destination }}' \
+            -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData"
+
+      # macOS and Mac Catalyst name themselves; a simulator row states its
+      # runtime and this picks a device out of the image's copy of it. A device
+      # row leaves the variable empty and the test step drops out.
+      - name: Resolve the test destination
+        run: |
+          if [ -n "${{ matrix.platform.simulator_runtime }}" ]; then
+            udid=$(xcrun simctl list devices available --json | jq -er \
+              --arg prefix "com.apple.CoreSimulator.SimRuntime.${{ matrix.platform.simulator_runtime }}" \
+              '[.devices | to_entries[] | select(.key | startswith($prefix)) | .value[]][0].udid')
+            echo "TEST_DESTINATION=id=$udid" >> "$GITHUB_ENV"
+          else
+            echo "TEST_DESTINATION=${{ matrix.platform.test_destination }}" >> "$GITHUB_ENV"
+          fi
+
+      # The integration suites create a temporary file-based keychain, which
+      # only macOS has; they are compiled out everywhere else, so the other
+      # rows run the pure request-building and parsing tests alone.
+      - name: xcodebuild test-without-building (Debug)
+        if: env.TEST_DESTINATION
+        run: |
+          xcodebuild test-without-building \
+            -scheme KeychainKit \
+            -destination "$TEST_DESTINATION" \
+            -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData"

@@ -1,5 +1,7 @@
 # KeychainKit
 
+[![GitHub Actions — Apple Platforms](https://github.com/sinoru/swift-keychain-kit/actions/workflows/apple-platforms.yml/badge.svg)](https://github.com/sinoru/swift-keychain-kit/actions/workflows/apple-platforms.yml)
+
 **KeychainKit** is a Swift interface to Apple's Keychain Services. It replaces the
 `CFDictionary`-of-`kSec*`-keys API with typed items, attributes, and queries; reports
 failures as a typed error that keeps the original `OSStatus`; and offers every operation
