@@ -18,8 +18,6 @@ let commonSwiftSettings: [SwiftSetting] = [
     .enableUpcomingFeature("MemberImportVisibility"),
     .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
     .strictMemorySafety(),
-    // This is a library, so nothing here should inherit MainActor isolation by default.
-    .defaultIsolation(nil),
 ]
 
 let package = Package(
