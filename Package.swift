@@ -1,5 +1,11 @@
 // swift-tools-version: 6.4
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+//
+//  Package.swift
+//  KeychainKit
+//
+//  Copyright (c) 2026 Kang Jaehong
+//  SPDX-License-Identifier: Apache-2.0
+//
 
 import PackageDescription
 
@@ -12,27 +18,50 @@ let commonSwiftSettings: [SwiftSetting] = [
     .enableUpcomingFeature("MemberImportVisibility"),
     .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
     .strictMemorySafety(),
+    // This is a library, so nothing here should inherit MainActor isolation by default.
+    .defaultIsolation(nil),
 ]
 
 let package = Package(
     name: "KeychainKit",
+    platforms: [
+        .macOS(.v14),
+        .iOS(.v17),
+        .tvOS(.v17),
+        .watchOS(.v10),
+        .visionOS(.v1),
+    ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "KeychainKit",
             targets: ["KeychainKit"]
         ),
     ],
+    dependencies: [
+        // Synchronizes the in-memory backend in the test-support target. The library itself has no dependencies.
+        .package(
+            url: "https://github.com/sinoru/swift-synchronization-kit.git",
+            from: "1.1.2",
+            traits: ["Mutex"]
+        ),
+    ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "KeychainKit",
             swiftSettings: commonSwiftSettings,
         ),
+        // In-memory backend and temporary-keychain fixtures. Not part of any product.
+        .target(
+            name: "KeychainKitTestSupport",
+            dependencies: [
+                "KeychainKit",
+                .product(name: "SynchronizationKit", package: "swift-synchronization-kit"),
+            ],
+            swiftSettings: commonSwiftSettings,
+        ),
         .testTarget(
             name: "KeychainKitTests",
-            dependencies: ["KeychainKit"],
+            dependencies: ["KeychainKit", "KeychainKitTestSupport"],
             swiftSettings: commonSwiftSettings,
         ),
     ]
