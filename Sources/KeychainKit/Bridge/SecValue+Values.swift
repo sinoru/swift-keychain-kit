@@ -7,6 +7,7 @@
 //
 
 package import Foundation
+internal import Security
 
 /// Typed views of a `SecValue`, each `nil` when the value is of another kind.
 extension SecValue {
@@ -67,4 +68,11 @@ extension SecValue {
     package init<Constant: RawRepresentable>(constant: Constant) where Constant.RawValue == String {
         self = .string(constant.rawValue)
     }
+}
+
+/// The `kSec*` constants that appear as values rather than keys.
+extension SecValue {
+    package static let matchLimitAll = SecValue.string(kSecMatchLimitAll as String)
+    package static let synchronizableAny = SecValue.string(kSecAttrSynchronizableAny as String)
+    package static let useAuthenticationUISkip = SecValue.string(kSecUseAuthenticationUISkip as String)
 }

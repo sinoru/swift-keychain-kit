@@ -17,7 +17,7 @@ import Testing
         var attributes = Attributes<GenericPassword>()
         attributes.protection = .accessible(.afterFirstUnlock)
         #expect(attributes.protection == .accessible(.afterFirstUnlock))
-        #expect(attributes.secDictionary == [kSecAttrAccessible as String: .string(kSecAttrAccessibleAfterFirstUnlock as String)])
+        #expect(attributes.secDictionary == [SecItemKey(kSecAttrAccessible): .string(kSecAttrAccessibleAfterFirstUnlock as String)])
     }
 
     @Test func accessControlProtectionIsEmittedAsAnObject() throws {
@@ -26,8 +26,8 @@ import Testing
         attributes.protection = .accessControl(control)
 
         #expect(attributes.protection == .accessControl(control))
-        #expect(attributes.secDictionary[kSecAttrAccessible as String] == nil)
-        guard case .object(let object)? = attributes.secDictionary[kSecAttrAccessControl as String] else {
+        #expect(attributes.secDictionary[SecItemKey(kSecAttrAccessible)] == nil)
+        guard case .object(let object)? = attributes.secDictionary[SecItemKey(kSecAttrAccessControl)] else {
             Issue.record("expected an access control object")
             return
         }
@@ -38,11 +38,11 @@ import Testing
         var attributes = Attributes<GenericPassword>()
         attributes.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked))
         attributes.protection = .accessible(.whenUnlocked)
-        #expect(attributes.secDictionary[kSecAttrAccessControl as String] == nil)
+        #expect(attributes.secDictionary[SecItemKey(kSecAttrAccessControl)] == nil)
         #expect(attributes.protection == .accessible(.whenUnlocked))
 
         attributes.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked))
-        #expect(attributes.secDictionary[kSecAttrAccessible as String] == nil)
+        #expect(attributes.secDictionary[SecItemKey(kSecAttrAccessible)] == nil)
 
         attributes.protection = nil
         #expect(attributes.isEmpty)
@@ -50,7 +50,7 @@ import Testing
 
     @Test func accessControlReadBackFromTheFrameworkIsOpaque() throws {
         let control = try AccessControl(accessibility: .whenUnlocked, flags: .userPresence)
-        let attributes = Attributes<GenericPassword>(secDictionary: [kSecAttrAccessControl as String: .object(control.secObject)])
+        let attributes = Attributes<GenericPassword>(secDictionary: [SecItemKey(kSecAttrAccessControl): .object(control.secObject)])
         guard case .accessControl(let opaque)? = attributes.protection else {
             Issue.record("expected an access control, got \(String(describing: attributes.protection))")
             return

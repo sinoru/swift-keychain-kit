@@ -59,12 +59,12 @@ public final class TemporaryFileKeychain: @unchecked Sendable {
 
     /// The `kSecUseKeychain` entry that directs `SecItemAdd` at this keychain.
     package var useKeychainEntry: SecDictionary {
-        [kSecUseKeychain as String: .object(SecObject(keychain))]
+        [.useKeychain: .object(SecObject(keychain))]
     }
 
     /// The `kSecMatchSearchList` entry that confines a query, update, or delete to this keychain.
     package var searchListEntry: SecDictionary {
-        [kSecMatchSearchList as String: .array([.object(SecObject(keychain))])]
+        [.matchSearchList: .array([.object(SecObject(keychain))])]
     }
 
     /// Deletes the keychain and its file.

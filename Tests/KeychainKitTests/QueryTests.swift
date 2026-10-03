@@ -18,14 +18,14 @@ import Testing
         query.service = "service"
         query.account = "account"
         #expect(query.secDictionary == [
-            kSecClass as String: .string(kSecClassGenericPassword as String),
-            kSecAttrService as String: .string("service"),
-            kSecAttrAccount as String: .string("account"),
+            SecItemKey(kSecClass): .string(kSecClassGenericPassword as String),
+            SecItemKey(kSecAttrService): .string("service"),
+            SecItemKey(kSecAttrAccount): .string("account"),
         ])
     }
 
     @Test func usesTheClassOfItsTypeParameter() {
-        #expect(Query<InternetPassword>().secDictionary[kSecClass as String] == .string(kSecClassInternetPassword as String))
+        #expect(Query<InternetPassword>().secDictionary[SecItemKey(kSecClass)] == .string(kSecClassInternetPassword as String))
     }
 
     @Test func synchronizableMatchOverridesTheAttribute() {
@@ -35,32 +35,32 @@ import Testing
         query.attributes.synchronizable = true
 
         query.synchronizable = .nonSynchronizableOnly
-        #expect(query.secDictionary[kSecAttrSynchronizable as String] == nil)
+        #expect(query.secDictionary[SecItemKey(kSecAttrSynchronizable)] == nil)
 
         query.synchronizable = .synchronizableOnly
-        #expect(query.secDictionary[kSecAttrSynchronizable as String] == .bool(true))
+        #expect(query.secDictionary[SecItemKey(kSecAttrSynchronizable)] == .bool(true))
 
         query.synchronizable = .any
-        #expect(query.secDictionary[kSecAttrSynchronizable as String] == .string(kSecAttrSynchronizableAny as String))
+        #expect(query.secDictionary[SecItemKey(kSecAttrSynchronizable)] == .string(kSecAttrSynchronizableAny as String))
     }
 
     @Test func skipFlagStaysOutOfTheQueryDictionary() {
         // The flag is search-only, so `Keychain.requestDictionary` adds it; see KeychainRequestTests.
         var query = Query<GenericPassword>()
         query.skipsItemsRequiringAuthentication = true
-        #expect(query.secDictionary[kSecUseAuthenticationUI as String] == nil)
+        #expect(query.secDictionary[SecItemKey(kSecUseAuthenticationUI)] == nil)
     }
 
     @Test func carriesAPersistentReference() {
         var query = Query<GenericPassword>()
         query.persistentReference = PersistentReference(rawValue: Data([9, 9]))
-        #expect(query.secDictionary[kSecValuePersistentRef as String] == .data(Data([9, 9])))
+        #expect(query.secDictionary[SecItemKey(kSecValuePersistentRef)] == .data(Data([9, 9])))
     }
 
     @Test func carriesProtection() throws {
         var query = Query<GenericPassword>()
         query.attributes.protection = .accessible(.afterFirstUnlock)
-        #expect(query.secDictionary[kSecAttrAccessible as String] == .string(kSecAttrAccessibleAfterFirstUnlock as String))
+        #expect(query.secDictionary[SecItemKey(kSecAttrAccessible)] == .string(kSecAttrAccessibleAfterFirstUnlock as String))
     }
 
     @Test func persistentReferenceRoundTripsThroughCodable() throws {

@@ -27,17 +27,17 @@ import Testing
         var query = Query<GenericPassword>()
         query.authenticationContext = AuthenticationContext(context)
         let keychain = Keychain()
-        #expect(isSameContext(keychain.dictionary(for: query)[kSecUseAuthenticationContext as String], as: context))
-        #expect(isSameContext(keychain.requestDictionary(for: query, returning: .data, all: false)[kSecUseAuthenticationContext as String], as: context))
-        #expect(keychain.dictionary(for: Query<GenericPassword>())[kSecUseAuthenticationContext as String] == nil)
+        #expect(isSameContext(keychain.dictionary(for: query)[SecItemKey(kSecUseAuthenticationContext)], as: context))
+        #expect(isSameContext(keychain.requestDictionary(for: query, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationContext)], as: context))
+        #expect(keychain.dictionary(for: Query<GenericPassword>())[SecItemKey(kSecUseAuthenticationContext)] == nil)
     }
 
     @Test func addCarriesTheContext() {
         let context = LAContext()
         let keychain = Keychain()
         let item = Item<GenericPassword>(data: Data())
-        #expect(isSameContext(keychain.addDictionary(for: item, authenticationContext: AuthenticationContext(context))[kSecUseAuthenticationContext as String], as: context))
-        #expect(keychain.addDictionary(for: item, authenticationContext: nil)[kSecUseAuthenticationContext as String] == nil)
+        #expect(isSameContext(keychain.addDictionary(for: item, authenticationContext: AuthenticationContext(context))[SecItemKey(kSecUseAuthenticationContext)], as: context))
+        #expect(keychain.addDictionary(for: item, authenticationContext: nil)[SecItemKey(kSecUseAuthenticationContext)] == nil)
     }
 
     @Test func dataQueriesInheritTheContextAndTheSkipFlag() {
@@ -49,7 +49,7 @@ import Testing
         let dataQuery = keychain.dataQuery(for: Attributes(), reference: PersistentReference(rawValue: Data([1])), inheriting: original)
         #expect(dataQuery.authenticationContext == AuthenticationContext(context))
         #expect(dataQuery.skipsItemsRequiringAuthentication)
-        #expect(isSameContext(keychain.requestDictionary(for: dataQuery, returning: .data, all: false)[kSecUseAuthenticationContext as String], as: context))
+        #expect(isSameContext(keychain.requestDictionary(for: dataQuery, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationContext)], as: context))
     }
 
     @Test func comparesByIdentity() {

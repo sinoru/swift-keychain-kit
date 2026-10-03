@@ -18,12 +18,12 @@ import Testing
 
     private var itemDictionary: SecValue {
         .dictionary([
-            kSecClass as String: .string("genp"),
-            kSecAttrService as String: .string("service"),
-            kSecAttrAccount as String: .string("account"),
-            kSecAttrCreationDate as String: .date(created),
-            kSecValueData as String: .data(Data("secret".utf8)),
-            kSecValuePersistentRef as String: .data(Data([7])),
+            SecItemKey(kSecClass): .string("genp"),
+            SecItemKey(kSecAttrService): .string("service"),
+            SecItemKey(kSecAttrAccount): .string("account"),
+            SecItemKey(kSecAttrCreationDate): .date(created),
+            SecItemKey(kSecValueData): .data(Data("secret".utf8)),
+            SecItemKey(kSecValuePersistentRef): .data(Data([7])),
         ])
     }
 
@@ -32,15 +32,15 @@ import Testing
         #expect(item.data == Data("secret".utf8))
         #expect(item.service == "service")
         #expect(item.creationDate == created)
-        #expect(item.attributes.storage[kSecValueData as String] == nil)
-        #expect(item.attributes.storage[kSecValuePersistentRef as String] == nil)
-        #expect(item.attributes.storage[kSecClass as String] == nil)
+        #expect(item.attributes.storage[SecItemKey(kSecValueData)] == nil)
+        #expect(item.attributes.storage[SecItemKey(kSecValuePersistentRef)] == nil)
+        #expect(item.attributes.storage[SecItemKey(kSecClass)] == nil)
     }
 
     @Test func attributesDropNonAttributeEntries() throws {
         let attributes: Attributes<GenericPassword> = try Keychain.attributes(from: itemDictionary)
         #expect(attributes.account == "account")
-        #expect(attributes.storage[kSecValueData as String] == nil)
+        #expect(attributes.storage[SecItemKey(kSecValueData)] == nil)
     }
 
     @Test func attributesAndReferenceSplitTheAllEntry() throws {

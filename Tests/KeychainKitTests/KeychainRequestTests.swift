@@ -26,53 +26,53 @@ import KeychainKitTestSupport
             keychain.requestDictionary(for: query, returning: .data, all: false),
             keychain.dictionary(for: query),
         ]
-        #expect(dictionaries.allSatisfy { $0[kSecUseDataProtectionKeychain as String] == .bool(true) })
+        #expect(dictionaries.allSatisfy { $0[SecItemKey(kSecUseDataProtectionKeychain)] == .bool(true) })
     }
 
     @Test func defaultAccessGroupIsInjectedUnlessNamed() {
         let keychain = Keychain(accessGroup: AccessGroup(rawValue: "TEAM.default"))
-        #expect(keychain.dictionary(for: query)[kSecAttrAccessGroup as String] == .string("TEAM.default"))
+        #expect(keychain.dictionary(for: query)[SecItemKey(kSecAttrAccessGroup)] == .string("TEAM.default"))
 
         var explicit = query
         explicit.accessGroup = AccessGroup(rawValue: "TEAM.other")
-        #expect(keychain.dictionary(for: explicit)[kSecAttrAccessGroup as String] == .string("TEAM.other"))
+        #expect(keychain.dictionary(for: explicit)[SecItemKey(kSecAttrAccessGroup)] == .string("TEAM.other"))
 
-        #expect(Keychain().dictionary(for: query)[kSecAttrAccessGroup as String] == nil)
+        #expect(Keychain().dictionary(for: query)[SecItemKey(kSecAttrAccessGroup)] == nil)
     }
 
     @Test func addSendsClassDataAndAsksForAPersistentReference() {
         var item = Item<InternetPassword>(data: Data("secret".utf8))
         item.server = "example.com"
         let dictionary = Keychain().addDictionary(for: item)
-        #expect(dictionary[kSecClass as String] == .string(kSecClassInternetPassword as String))
-        #expect(dictionary[kSecAttrServer as String] == .string("example.com"))
-        #expect(dictionary[kSecValueData as String] == .data(Data("secret".utf8)))
-        #expect(dictionary[kSecReturnPersistentRef as String] == .bool(true))
-        #expect(dictionary[kSecReturnData as String] == nil)
+        #expect(dictionary[SecItemKey(kSecClass)] == .string(kSecClassInternetPassword as String))
+        #expect(dictionary[SecItemKey(kSecAttrServer)] == .string("example.com"))
+        #expect(dictionary[SecItemKey(kSecValueData)] == .data(Data("secret".utf8)))
+        #expect(dictionary[SecItemKey(kSecReturnPersistentRef)] == .bool(true))
+        #expect(dictionary[SecItemKey(kSecReturnData)] == nil)
     }
 
     @Test func addOmitsDataWhenTheItemHasNone() {
-        #expect(Keychain().addDictionary(for: Item<GenericPassword>())[kSecValueData as String] == nil)
+        #expect(Keychain().addDictionary(for: Item<GenericPassword>())[SecItemKey(kSecValueData)] == nil)
     }
 
     @Test func searchesRequestOnlyTheKeysAsked() {
         let keychain = Keychain()
-        func returnKeys(_ dictionary: SecDictionary) -> Set<String> {
-            Set([kSecReturnData, kSecReturnAttributes, kSecReturnRef, kSecReturnPersistentRef].map { $0 as String }.filter { dictionary[$0] == .bool(true) })
+        func returnKeys(_ dictionary: SecDictionary) -> Set<SecItemKey> {
+            Set([kSecReturnData, kSecReturnAttributes, kSecReturnRef, kSecReturnPersistentRef].map { SecItemKey($0) }.filter { dictionary[$0] == .bool(true) })
         }
 
         let first = keychain.requestDictionary(for: query, returning: [.attributes, .data], all: false)
-        #expect(returnKeys(first) == [kSecReturnAttributes as String, kSecReturnData as String])
-        #expect(first[kSecMatchLimit as String] == nil)
-        #expect(first[kSecAttrService as String] == .string("service"))
+        #expect(returnKeys(first) == [SecItemKey(kSecReturnAttributes), SecItemKey(kSecReturnData)])
+        #expect(first[SecItemKey(kSecMatchLimit)] == nil)
+        #expect(first[SecItemKey(kSecAttrService)] == .string("service"))
 
-        #expect(returnKeys(keychain.requestDictionary(for: query, returning: .attributes, all: false)) == [kSecReturnAttributes as String])
-        #expect(returnKeys(keychain.requestDictionary(for: query, returning: .data, all: false)) == [kSecReturnData as String])
-        #expect(returnKeys(keychain.requestDictionary(for: query, returning: .persistentReference, all: false)) == [kSecReturnPersistentRef as String])
+        #expect(returnKeys(keychain.requestDictionary(for: query, returning: .attributes, all: false)) == [SecItemKey(kSecReturnAttributes)])
+        #expect(returnKeys(keychain.requestDictionary(for: query, returning: .data, all: false)) == [SecItemKey(kSecReturnData)])
+        #expect(returnKeys(keychain.requestDictionary(for: query, returning: .persistentReference, all: false)) == [SecItemKey(kSecReturnPersistentRef)])
 
         let all = keychain.requestDictionary(for: query, returning: [.attributes, .persistentReference], all: true)
-        #expect(returnKeys(all) == [kSecReturnAttributes as String, kSecReturnPersistentRef as String])
-        #expect(all[kSecMatchLimit as String] == .string(kSecMatchLimitAll as String))
+        #expect(returnKeys(all) == [SecItemKey(kSecReturnAttributes), SecItemKey(kSecReturnPersistentRef)])
+        #expect(all[SecItemKey(kSecMatchLimit)] == .string(kSecMatchLimitAll as String))
     }
 
     @Test func dataQueryCarriesReferenceGroupAndAnySynchronizable() {
@@ -84,32 +84,32 @@ import KeychainKitTestSupport
             returning: .data,
             all: false,
         )
-        #expect(dictionary[kSecValuePersistentRef as String] == .data(Data([7])))
-        #expect(dictionary[kSecAttrAccessGroup as String] == .string("TEAM.shared"))
-        #expect(dictionary[kSecAttrSynchronizable as String] == .string(kSecAttrSynchronizableAny as String))
-        #expect(dictionary[kSecReturnData as String] == .bool(true))
+        #expect(dictionary[SecItemKey(kSecValuePersistentRef)] == .data(Data([7])))
+        #expect(dictionary[SecItemKey(kSecAttrAccessGroup)] == .string("TEAM.shared"))
+        #expect(dictionary[SecItemKey(kSecAttrSynchronizable)] == .string(kSecAttrSynchronizableAny as String))
+        #expect(dictionary[SecItemKey(kSecReturnData)] == .bool(true))
 
         let ungrouped = keychain.requestDictionary(
             for: keychain.dataQuery(for: Attributes<GenericPassword>(), reference: PersistentReference(rawValue: Data([7])), inheriting: query),
             returning: .data,
             all: false,
         )
-        #expect(ungrouped[kSecAttrAccessGroup as String] == .string("TEAM.default"))
+        #expect(ungrouped[SecItemKey(kSecAttrAccessGroup)] == .string("TEAM.default"))
     }
 
     @Test func skipFlagReachesSearchesButNotMutations() {
         var skipping = query
         skipping.skipsItemsRequiringAuthentication = true
         let keychain = Keychain()
-        #expect(keychain.requestDictionary(for: skipping, returning: .data, all: false)[kSecUseAuthenticationUI as String] == .string(kSecUseAuthenticationUISkip as String))
-        #expect(keychain.requestDictionary(for: query, returning: .data, all: false)[kSecUseAuthenticationUI as String] == nil)
-        #expect(keychain.dictionary(for: skipping)[kSecUseAuthenticationUI as String] == nil)
+        #expect(keychain.requestDictionary(for: skipping, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationUI)] == .string(kSecUseAuthenticationUISkip as String))
+        #expect(keychain.requestDictionary(for: query, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationUI)] == nil)
+        #expect(keychain.dictionary(for: skipping)[SecItemKey(kSecUseAuthenticationUI)] == nil)
     }
 
     @Test func updateAndDeleteAskForEveryMatch() {
         let dictionary = Keychain().dictionary(for: query)
-        #expect(dictionary[kSecMatchLimit as String] == .string(kSecMatchLimitAll as String))
-        #expect(dictionary[kSecAttrService as String] == .string("service"))
+        #expect(dictionary[SecItemKey(kSecMatchLimit)] == .string(kSecMatchLimitAll as String))
+        #expect(dictionary[SecItemKey(kSecAttrService)] == .string("service"))
     }
 
     @Test func dataQueryInheritsTheSkipFlag() {
@@ -125,8 +125,8 @@ import KeychainKitTestSupport
         var changes = Item<GenericPassword>(data: Data("new".utf8))
         changes.label = "label"
         #expect(Keychain.updateDictionary(for: changes) == [
-            kSecAttrLabel as String: .string("label"),
-            kSecValueData as String: .data(Data("new".utf8)),
+            SecItemKey(kSecAttrLabel): .string("label"),
+            SecItemKey(kSecValueData): .data(Data("new".utf8)),
         ])
         #expect(Keychain.updateDictionary(for: Item<GenericPassword>()).isEmpty)
     }
@@ -138,8 +138,8 @@ import KeychainKitTestSupport
         let keychain = Keychain(storage: .fileBased(temporary.fileKeychain))
 
         let add = keychain.addDictionary(for: Item<GenericPassword>(data: Data()))
-        #expect(add[kSecUseDataProtectionKeychain as String] == nil)
-        guard case .object(let used)? = add[kSecUseKeychain as String] else {
+        #expect(add[SecItemKey(kSecUseDataProtectionKeychain)] == nil)
+        guard case .object(let used)? = add[SecItemKey(kSecUseKeychain)] else {
             Issue.record("expected kSecUseKeychain")
             return
         }
@@ -150,15 +150,15 @@ import KeychainKitTestSupport
         var byReference = query
         byReference.persistentReference = PersistentReference(rawValue: Data([9]))
         let search = keychain.dictionary(for: byReference)
-        #expect(search[kSecMatchSearchList as String] == .array([.object(SecObject(temporary.fileKeychain.reference))]))
-        #expect(search[kSecValuePersistentRef as String] == nil)
-        #expect(search[kSecMatchItemList as String] == .array([.data(Data([9]))]))
+        #expect(search[SecItemKey(kSecMatchSearchList)] == .array([.object(SecObject(temporary.fileKeychain.reference))]))
+        #expect(search[SecItemKey(kSecValuePersistentRef)] == nil)
+        #expect(search[SecItemKey(kSecMatchItemList)] == .array([.data(Data([9]))]))
     }
 
     @Test func defaultFileBasedStorageAddsNoStorageKeys() {
         let dictionary = Keychain(storage: .fileBased()).dictionary(for: query)
-        #expect(dictionary[kSecUseDataProtectionKeychain as String] == nil)
-        #expect(dictionary[kSecMatchSearchList as String] == nil)
+        #expect(dictionary[SecItemKey(kSecUseDataProtectionKeychain)] == nil)
+        #expect(dictionary[SecItemKey(kSecMatchSearchList)] == nil)
     }
     #endif
 }

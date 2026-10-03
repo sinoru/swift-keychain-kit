@@ -6,8 +6,6 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
-internal import Security
-
 /// The attributes of a keychain item of one class.
 ///
 /// Each attribute is a property, declared only for the item classes it is valid for: `service`
@@ -36,11 +34,11 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
     /// `AccessControl` whose constraints are unknown.
     package init(secDictionary: SecDictionary) {
         var storage = secDictionary
-        storage[Keys.itemClass] = nil
-        for key in Keys.values {
-            storage[key] = nil
-        }
-        if case .object(let object)? = storage.removeValue(forKey: Keys.accessControl) {
+        storage[.itemClass] = nil
+        storage[.valueData] = nil
+        storage[.valueRef] = nil
+        storage[.valuePersistentRef] = nil
+        if case .object(let object)? = storage.removeValue(forKey: .accessControl) {
             accessControl = AccessControl(opaque: object)
         }
         self.storage = storage
@@ -50,7 +48,7 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
     package var secDictionary: SecDictionary {
         var dictionary = storage
         if let accessControl {
-            dictionary[Keys.accessControl] = .object(accessControl.secObject)
+            dictionary[.accessControl] = .object(accessControl.secObject)
         }
         return dictionary
     }
@@ -63,7 +61,7 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
             if let accessControl {
                 return .accessControl(accessControl)
             }
-            if case .string(let rawValue)? = storage[Keys.accessible] {
+            if case .string(let rawValue)? = storage[.accessible] {
                 return .accessible(Accessibility(rawValue: rawValue))
             }
             return nil
@@ -72,12 +70,12 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
             switch newValue {
             case .accessible(let accessibility)?:
                 accessControl = nil
-                storage[Keys.accessible] = .string(accessibility.rawValue)
+                storage[.accessible] = .string(accessibility.rawValue)
             case .accessControl(let control)?:
-                storage[Keys.accessible] = nil
+                storage[.accessible] = nil
                 accessControl = control
             case nil:
-                storage[Keys.accessible] = nil
+                storage[.accessible] = nil
                 accessControl = nil
             }
         }
@@ -87,12 +85,4 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
     public var isEmpty: Bool {
         storage.isEmpty && accessControl == nil
     }
-}
-
-/// File-scoped because a type nested in a generic struct cannot hold static stored properties.
-private enum Keys {
-    static let itemClass = kSecClass as String
-    static let accessible = kSecAttrAccessible as String
-    static let accessControl = kSecAttrAccessControl as String
-    static let values = [kSecValueData, kSecValueRef, kSecValuePersistentRef].map { $0 as String }
 }

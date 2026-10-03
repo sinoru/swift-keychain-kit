@@ -30,18 +30,18 @@ import Testing
         generic.service = "service"
         generic.generic = Data([1, 2, 3])
         #expect(generic.storage == [
-            kSecAttrLabel as String: .string("label"),
-            kSecAttrAccessGroup as String: .string("TEAM.group"),
-            kSecAttrSynchronizable as String: .bool(true),
-            kSecAttrAccount as String: .string("account"),
-            kSecAttrDescription as String: .string("description"),
-            kSecAttrComment as String: .string("comment"),
-            kSecAttrCreator as String: .integer(0x4B_43_48_4E),
-            kSecAttrType as String: .integer(0x5459_5045),
-            kSecAttrIsInvisible as String: .bool(true),
-            kSecAttrIsNegative as String: .bool(false),
-            kSecAttrService as String: .string("service"),
-            kSecAttrGeneric as String: .data(Data([1, 2, 3])),
+            SecItemKey(kSecAttrLabel): .string("label"),
+            SecItemKey(kSecAttrAccessGroup): .string("TEAM.group"),
+            SecItemKey(kSecAttrSynchronizable): .bool(true),
+            SecItemKey(kSecAttrAccount): .string("account"),
+            SecItemKey(kSecAttrDescription): .string("description"),
+            SecItemKey(kSecAttrComment): .string("comment"),
+            SecItemKey(kSecAttrCreator): .integer(0x4B_43_48_4E),
+            SecItemKey(kSecAttrType): .integer(0x5459_5045),
+            SecItemKey(kSecAttrIsInvisible): .bool(true),
+            SecItemKey(kSecAttrIsNegative): .bool(false),
+            SecItemKey(kSecAttrService): .string("service"),
+            SecItemKey(kSecAttrGeneric): .data(Data([1, 2, 3])),
         ])
 
         var internet = Attributes<InternetPassword>()
@@ -52,12 +52,12 @@ import Testing
         internet.authenticationType = .httpBasic
         internet.port = 8443
         #expect(internet.storage == [
-            kSecAttrServer as String: .string("example.com"),
-            kSecAttrSecurityDomain as String: .string("domain"),
-            kSecAttrPath as String: .string("/api"),
-            kSecAttrProtocol as String: .string(kSecAttrProtocolHTTPS as String),
-            kSecAttrAuthenticationType as String: .string(kSecAttrAuthenticationTypeHTTPBasic as String),
-            kSecAttrPort as String: .integer(8443),
+            SecItemKey(kSecAttrServer): .string("example.com"),
+            SecItemKey(kSecAttrSecurityDomain): .string("domain"),
+            SecItemKey(kSecAttrPath): .string("/api"),
+            SecItemKey(kSecAttrProtocol): .string(kSecAttrProtocolHTTPS as String),
+            SecItemKey(kSecAttrAuthenticationType): .string(kSecAttrAuthenticationTypeHTTPBasic as String),
+            SecItemKey(kSecAttrPort): .integer(8443),
         ])
     }
 
@@ -99,18 +99,18 @@ import Testing
     @Test func frameworkSetDatesAreReadOnlyProperties() {
         let created = Date(timeIntervalSince1970: 1_000)
         let attributes = Attributes<GenericPassword>(secDictionary: [
-            kSecClass as String: .string("genp"),
-            kSecAttrCreationDate as String: .date(created),
-            kSecAttrService as String: .string("service"),
+            SecItemKey(kSecClass): .string("genp"),
+            SecItemKey(kSecAttrCreationDate): .date(created),
+            SecItemKey(kSecAttrService): .string("service"),
         ])
         #expect(attributes.creationDate == created)
         #expect(attributes.modificationDate == nil)
         #expect(attributes.service == "service")
-        #expect(attributes.storage[kSecClass as String] == nil)
+        #expect(attributes.storage[SecItemKey(kSecClass)] == nil)
     }
 
     @Test func mismatchedStoredTypeReadsAsNil() {
-        let attributes = Attributes<InternetPassword>(secDictionary: [kSecAttrPort as String: .string("not a number")])
+        let attributes = Attributes<InternetPassword>(secDictionary: [SecItemKey(kSecAttrPort): .string("not a number")])
         #expect(attributes.port == nil)
     }
 
@@ -121,13 +121,13 @@ import Testing
         attributes.type = 0x8000_0001
         #expect(attributes.creator == UInt32.max)
         #expect(attributes.type == 0x8000_0001)
-        #expect(attributes.storage[kSecAttrCreator as String] == .integer(Int64(UInt32.max)))
+        #expect(attributes.storage[SecItemKey(kSecAttrCreator)] == .integer(Int64(UInt32.max)))
     }
 
     @Test func fourCharacterCodesOutsideUInt32ReadAsNil() {
         let attributes = Attributes<GenericPassword>(secDictionary: [
-            kSecAttrCreator as String: .integer(-1),
-            kSecAttrType as String: .integer(Int64(UInt32.max) + 1),
+            SecItemKey(kSecAttrCreator): .integer(-1),
+            SecItemKey(kSecAttrType): .integer(Int64(UInt32.max) + 1),
         ])
         #expect(attributes.creator == nil)
         #expect(attributes.type == nil)
@@ -135,7 +135,7 @@ import Testing
 
     @Test func booleansReadFromBooleanOrZeroOneIntegers() {
         func read(_ value: SecValue) -> Bool? {
-            Attributes<GenericPassword>(secDictionary: [kSecAttrSynchronizable as String: value]).synchronizable
+            Attributes<GenericPassword>(secDictionary: [SecItemKey(kSecAttrSynchronizable): value]).synchronizable
         }
         #expect(read(.bool(true)) == true)
         #expect(read(.bool(false)) == false)

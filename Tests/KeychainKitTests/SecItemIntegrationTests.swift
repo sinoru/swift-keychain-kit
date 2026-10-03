@@ -28,25 +28,25 @@ import KeychainKitTestSupport
 
     private func genericPassword(in keychain: TemporaryFileKeychain, account: String = "account", data: Data = Data("secret".utf8)) -> SecDictionary {
         [
-            kSecClass as String: .string(kSecClassGenericPassword as String),
-            kSecAttrService as String: .string("dev.sinoru.KeychainKit.tests"),
-            kSecAttrAccount as String: .string(account),
-            kSecValueData as String: .data(data),
+            SecItemKey(kSecClass): .string(kSecClassGenericPassword as String),
+            SecItemKey(kSecAttrService): .string("dev.sinoru.KeychainKit.tests"),
+            SecItemKey(kSecAttrAccount): .string(account),
+            SecItemKey(kSecValueData): .data(data),
         ].merging(keychain.useKeychainEntry) { _, new in new }
     }
 
     private func query(in keychain: TemporaryFileKeychain, account: String = "account", extra: SecDictionary = [:]) -> SecDictionary {
         [
-            kSecClass as String: .string(kSecClassGenericPassword as String),
-            kSecAttrService as String: .string("dev.sinoru.KeychainKit.tests"),
-            kSecAttrAccount as String: .string(account),
+            SecItemKey(kSecClass): .string(kSecClassGenericPassword as String),
+            SecItemKey(kSecAttrService): .string("dev.sinoru.KeychainKit.tests"),
+            SecItemKey(kSecAttrAccount): .string(account),
         ].merging(keychain.searchListEntry) { _, new in new }.merging(extra) { _, new in new }
     }
 
     @Test func addsAndReadsBackData() throws {
         try withTemporaryKeychain { keychain in
             try Keychain.secItemAdd(genericPassword(in: keychain))
-            let result = try Keychain.secItemCopyMatching(query(in: keychain, extra: [kSecReturnData as String: .bool(true)]))
+            let result = try Keychain.secItemCopyMatching(query(in: keychain, extra: [SecItemKey(kSecReturnData): .bool(true)]))
             #expect(result == .data(Data("secret".utf8)))
         }
     }
@@ -64,25 +64,25 @@ import KeychainKitTestSupport
         try withTemporaryKeychain { keychain in
             try Keychain.secItemAdd(genericPassword(in: keychain))
             let result = try Keychain.secItemCopyMatching(query(in: keychain, extra: [
-                kSecReturnData as String: .bool(true),
-                kSecReturnAttributes as String: .bool(true),
+                SecItemKey(kSecReturnData): .bool(true),
+                SecItemKey(kSecReturnAttributes): .bool(true),
             ]))
             guard case .dictionary(let dictionary)? = result else {
                 Issue.record("expected a dictionary, got \(String(describing: result))")
                 return
             }
-            #expect(dictionary[kSecValueData as String] == .data(Data("secret".utf8)))
-            #expect(dictionary[kSecAttrAccount as String] == .string("account"))
-            #expect(dictionary[kSecClass as String] == .string("genp"))
-            #expect(dictionary[kSecAttrCreationDate as String] != nil)
+            #expect(dictionary[SecItemKey(kSecValueData)] == .data(Data("secret".utf8)))
+            #expect(dictionary[SecItemKey(kSecAttrAccount)] == .string("account"))
+            #expect(dictionary[SecItemKey(kSecClass)] == .string("genp"))
+            #expect(dictionary[SecItemKey(kSecAttrCreationDate)] != nil)
         }
     }
 
     @Test func updatesData() throws {
         try withTemporaryKeychain { keychain in
             try Keychain.secItemAdd(genericPassword(in: keychain))
-            try Keychain.secItemUpdate(query(in: keychain), with: [kSecValueData as String: .data(Data("changed".utf8))])
-            let result = try Keychain.secItemCopyMatching(query(in: keychain, extra: [kSecReturnData as String: .bool(true)]))
+            try Keychain.secItemUpdate(query(in: keychain), with: [SecItemKey(kSecValueData): .data(Data("changed".utf8))])
+            let result = try Keychain.secItemCopyMatching(query(in: keychain, extra: [SecItemKey(kSecReturnData): .bool(true)]))
             #expect(result == .data(Data("changed".utf8)))
         }
     }
@@ -92,7 +92,7 @@ import KeychainKitTestSupport
             try Keychain.secItemAdd(genericPassword(in: keychain))
             try Keychain.secItemDelete(query(in: keychain))
             #expect(throws: KeychainError(code: .itemNotFound)) {
-                try Keychain.secItemCopyMatching(query(in: keychain, extra: [kSecReturnData as String: .bool(true)]))
+                try Keychain.secItemCopyMatching(query(in: keychain, extra: [SecItemKey(kSecReturnData): .bool(true)]))
             }
         }
     }
@@ -103,9 +103,9 @@ import KeychainKitTestSupport
             try Keychain.secItemAdd(genericPassword(in: keychain, account: account))
             // The same account through the temporary keychain is found; through the default
             // search list it must not be.
-            var query = query(in: keychain, account: account, extra: [kSecReturnAttributes as String: .bool(true)])
+            var query = query(in: keychain, account: account, extra: [SecItemKey(kSecReturnAttributes): .bool(true)])
             #expect(try Keychain.secItemCopyMatching(query) != nil)
-            query[kSecMatchSearchList as String] = nil
+            query[SecItemKey(kSecMatchSearchList)] = nil
             #expect(throws: KeychainError(code: .itemNotFound)) {
                 try Keychain.secItemCopyMatching(query)
             }

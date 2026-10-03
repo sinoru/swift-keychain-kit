@@ -37,8 +37,8 @@ package enum SecValue: Hashable, Sendable {
     case object(SecObject)
 }
 
-/// A SecItem dictionary: `kSec*` keys by their raw string, values as `SecValue`.
-package typealias SecDictionary = [String: SecValue]
+/// A SecItem dictionary: `kSec*` keys as `SecItemKey`, values as `SecValue`.
+package typealias SecDictionary = [SecItemKey: SecValue]
 
 /// An opaque reference that passes through a SecItem dictionary.
 ///
@@ -77,48 +77,48 @@ extension SecValue {
     /// Classifies a CF object by its type ID.
     ///
     /// The type ID check comes first because bridged casts are too permissive: a `CFBoolean`
-    /// also casts to `Int`, and a `CFNumber` also casts to `Bool`.
+    /// also casts to `Int`, and a `CFNumber` also casts to `Bool`. Once the type ID has
+    /// established the class, each branch force-casts to that class and bridges from there. The
+    /// forced casts cannot fail, and they skip the dynamic cast a conditional cast to the Swift
+    /// type would run a second time, which measured as about a quarter of the conversion.
     init(cf value: AnyObject) {
         switch CFGetTypeID(value) {
         case CFStringGetTypeID():
-            if let string = value as? String {
-                self = .string(string)
-                return
-            }
+            self = .string((value as! NSString) as String)
         case CFDataGetTypeID():
-            if let data = value as? Data {
-                self = .data(data)
-                return
-            }
+            self = .data((value as! NSData) as Data)
         case CFBooleanGetTypeID():
-            if let bool = value as? Bool {
-                self = .bool(bool)
-                return
-            }
+            self = .bool(value === kCFBooleanTrue)
         case CFNumberGetTypeID():
-            if let integer = value as? Int64 {
+            // `NSNumber` bridges to `Int64` only when the value is exactly representable, so a
+            // fraction or an integer beyond `Int64` is carried as an `object` rather than rounded.
+            // `CFNumberGetValue` cannot stand in for this: it reports an unsigned value above
+            // `Int64.max` as a successful conversion and hands back its bit pattern (measured on
+            // macOS 26: `UInt64.max` reads as -1).
+            if let integer = (value as! NSNumber) as? Int64 {
                 self = .integer(integer)
-                return
+            } else {
+                self = .object(SecObject(value))
             }
         case CFDateGetTypeID():
-            if let date = value as? Date {
-                self = .date(date)
-                return
-            }
+            self = .date((value as! NSDate) as Date)
         case CFDictionaryGetTypeID():
-            if let dictionary = value as? [String: Any] {
-                self = .dictionary(SecDictionary(cf: dictionary))
-                return
+            if let dictionary = SecDictionary(cf: value as! NSDictionary) {
+                self = .dictionary(dictionary)
+            } else {
+                self = .object(SecObject(value))
             }
         case CFArrayGetTypeID():
-            if let array = value as? [Any] {
-                self = .array(array.map { SecValue(cf: $0 as AnyObject) })
-                return
+            let array = value as! NSArray
+            var values: [SecValue] = []
+            values.reserveCapacity(array.count)
+            for index in 0..<array.count {
+                values.append(SecValue(cf: array.object(at: index) as AnyObject))
             }
+            self = .array(values)
         default:
-            break
+            self = .object(SecObject(value))
         }
-        self = .object(SecObject(value))
     }
 
     /// The CF object to put in a SecItem dictionary.
@@ -145,14 +145,37 @@ extension SecValue {
 }
 
 extension SecDictionary {
-    /// Converts a bridged dictionary. A dictionary with a non-string key never gets here: the
-    /// cast to `[String: Any]` fails as a whole and the value is carried as an `object`.
-    init(cf dictionary: [String: Any]) {
-        self = dictionary.mapValues { SecValue(cf: $0 as AnyObject) }
+    /// Converts a dictionary the framework returned, or `nil` when a key is not a string.
+    ///
+    /// Walks the `NSDictionary` directly. Casting to `[String: Any]` first would build a Swift
+    /// dictionary only for this one to be built from it. The enumeration is marked `unsafe` for
+    /// the block's stop pointer, which is never touched.
+    init?(cf dictionary: NSDictionary) {
+        var result = SecDictionary(minimumCapacity: dictionary.count)
+        var hasOnlyStringKeys = true
+        unsafe dictionary.enumerateKeysAndObjects { key, value, _ in
+            guard let key = key as? NSString else {
+                hasOnlyStringKeys = false
+                return
+            }
+            result[SecItemKey(rawValue: key as String)] = SecValue(cf: value as AnyObject)
+        }
+        guard hasOnlyStringKeys else {
+            return nil
+        }
+        self = result
     }
 
     /// The `CFDictionary` to pass to a `SecItem*` function.
+    ///
+    /// Built as an `NSMutableDictionary` rather than bridged from a Swift dictionary. A bridged
+    /// Swift dictionary converts the key of every lookup the framework makes back to a `String`,
+    /// and filling the Core Foundation dictionary directly measured no slower than bridging.
     var cfDictionary: CFDictionary {
-        mapValues(\.cfValue) as CFDictionary
+        let dictionary = NSMutableDictionary(capacity: count)
+        for (key, value) in self {
+            dictionary.setObject(value.cfValue, forKey: key.rawValue as NSString)
+        }
+        return dictionary
     }
 }

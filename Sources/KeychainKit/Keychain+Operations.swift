@@ -7,7 +7,6 @@
 //
 
 public import Foundation
-internal import Security
 
 extension Keychain {
     // MARK: Create
@@ -186,7 +185,7 @@ extension Keychain {
     ) -> SecDictionary {
         var dictionary = addDictionary(for: item)
         if let authenticationContext {
-            dictionary[Keys.useAuthenticationContext] = authenticationContext.secValue
+            dictionary[.useAuthenticationContext] = authenticationContext.secValue
         }
         return dictionary
     }
@@ -195,12 +194,12 @@ extension Keychain {
     /// The dictionary for `SecItemAdd`, before any authentication context.
     package func addDictionary<Class>(for item: Item<Class>) -> SecDictionary {
         var dictionary = item.attributes.secDictionary
-        dictionary[Keys.itemClass] = .string(Class.secClass)
+        dictionary[.itemClass] = .string(Class.secClass)
         if let data = item.data {
-            dictionary[Keys.valueData] = .data(data)
+            dictionary[.valueData] = .data(data)
         }
         applyDefaults(to: &dictionary, forAdding: true)
-        dictionary[Keys.returnPersistentRef] = .bool(true)
+        dictionary[.returnPersistentRef] = .bool(true)
         return dictionary
     }
 
@@ -211,19 +210,19 @@ extension Keychain {
     package func requestDictionary<Class>(for query: Query<Class>, returning keys: ResultKeys, all: Bool) -> SecDictionary {
         var dictionary = baseDictionary(for: query)
         if query.skipsItemsRequiringAuthentication {
-            dictionary[Keys.useAuthenticationUI] = .string(Keys.useAuthenticationUISkip)
+            dictionary[.useAuthenticationUI] = .useAuthenticationUISkip
         }
         if keys.contains(.data) {
-            dictionary[Keys.returnData] = .bool(true)
+            dictionary[.returnData] = .bool(true)
         }
         if keys.contains(.attributes) {
-            dictionary[Keys.returnAttributes] = .bool(true)
+            dictionary[.returnAttributes] = .bool(true)
         }
         if keys.contains(.persistentReference) {
-            dictionary[Keys.returnPersistentRef] = .bool(true)
+            dictionary[.returnPersistentRef] = .bool(true)
         }
         if all {
-            dictionary[Keys.matchLimit] = .string(Keys.matchLimitAll)
+            dictionary[.matchLimit] = .matchLimitAll
         }
         return dictionary
     }
@@ -235,7 +234,7 @@ extension Keychain {
     /// `kSecMatchLimitAll` is given, so it is always given; the other implementation ignores it.
     package func dictionary<Class>(for query: Query<Class>) -> SecDictionary {
         var dictionary = baseDictionary(for: query)
-        dictionary[Keys.matchLimit] = .string(Keys.matchLimitAll)
+        dictionary[.matchLimit] = .matchLimitAll
         return dictionary
     }
 
@@ -250,7 +249,7 @@ extension Keychain {
     package static func updateDictionary<Class>(for changes: Item<Class>) -> SecDictionary {
         var attributes = changes.attributes.secDictionary
         if let data = changes.data {
-            attributes[Keys.valueData] = .data(data)
+            attributes[.valueData] = .data(data)
         }
         return attributes
     }
@@ -280,26 +279,26 @@ extension Keychain {
 
     /// Adds the access group and storage entries. A group named by the caller wins over the default.
     private func applyDefaults(to dictionary: inout SecDictionary, forAdding: Bool) {
-        if let accessGroup, dictionary[Keys.accessGroup] == nil {
-            dictionary[Keys.accessGroup] = .string(accessGroup.rawValue)
+        if let accessGroup, dictionary[.accessGroup] == nil {
+            dictionary[.accessGroup] = .string(accessGroup.rawValue)
         }
         switch storage {
         case .dataProtection:
-            dictionary[Keys.useDataProtectionKeychain] = .bool(true)
+            dictionary[.useDataProtectionKeychain] = .bool(true)
         #if os(macOS)
         case .fileBased(let keychain):
             if let keychain {
                 let reference = SecValue.object(SecObject(keychain.reference))
                 if forAdding {
-                    dictionary[Keys.useKeychain] = reference
+                    dictionary[.useKeychain] = reference
                 } else {
-                    dictionary[Keys.matchSearchList] = .array([reference])
+                    dictionary[.matchSearchList] = .array([reference])
                 }
             }
             // The file-based keychain resolves persistent references through the item list,
             // not through kSecValuePersistentRef as the data protection keychain does.
-            if let reference = dictionary.removeValue(forKey: Keys.valuePersistentRef) {
-                dictionary[Keys.matchItemList] = .array([reference])
+            if let reference = dictionary.removeValue(forKey: .valuePersistentRef) {
+                dictionary[.matchItemList] = .array([reference])
             }
         #endif
         }
@@ -315,7 +314,7 @@ extension Keychain {
         guard case .dictionary(var dictionary) = value else {
             throw KeychainError(code: .decodingFailed)
         }
-        let data: Data? = if case .data(let data)? = dictionary.removeValue(forKey: Keys.valueData) { data } else { nil }
+        let data: Data? = if case .data(let data)? = dictionary.removeValue(forKey: .valueData) { data } else { nil }
         return Item(attributes: Attributes(secDictionary: dictionary), data: data)
     }
 
@@ -328,7 +327,7 @@ extension Keychain {
 
     package static func attributesAndReference<Class>(from value: SecValue) throws(KeychainError) -> (Attributes<Class>, PersistentReference) {
         guard case .dictionary(var dictionary) = value,
-              case .data(let reference)? = dictionary.removeValue(forKey: Keys.valuePersistentRef)
+              case .data(let reference)? = dictionary.removeValue(forKey: .valuePersistentRef)
         else {
             throw KeychainError(code: .decodingFailed)
         }
@@ -353,27 +352,4 @@ extension Keychain {
         }
         return try persistentReference(from: value)
     }
-}
-
-private enum Keys {
-    static let itemClass = kSecClass as String
-    static let accessGroup = kSecAttrAccessGroup as String
-    static let valueData = kSecValueData as String
-    static let valuePersistentRef = kSecValuePersistentRef as String
-    static let returnData = kSecReturnData as String
-    static let returnAttributes = kSecReturnAttributes as String
-    static let returnPersistentRef = kSecReturnPersistentRef as String
-    static let matchLimit = kSecMatchLimit as String
-    static let matchLimitAll = kSecMatchLimitAll as String
-    static let useDataProtectionKeychain = kSecUseDataProtectionKeychain as String
-    static let useAuthenticationUI = kSecUseAuthenticationUI as String
-    static let useAuthenticationUISkip = kSecUseAuthenticationUISkip as String
-    #if canImport(LocalAuthentication) && !os(tvOS)
-    static let useAuthenticationContext = kSecUseAuthenticationContext as String
-    #endif
-    #if os(macOS)
-    static let useKeychain = kSecUseKeychain as String
-    static let matchSearchList = kSecMatchSearchList as String
-    static let matchItemList = kSecMatchItemList as String
-    #endif
 }

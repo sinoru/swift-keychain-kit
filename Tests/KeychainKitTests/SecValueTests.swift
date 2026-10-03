@@ -25,7 +25,11 @@ import Testing
         .integer(Int64.min),
         .date(Date(timeIntervalSince1970: 1_700_000_000)),
         .array([.string("a"), .integer(1)]),
-        .dictionary(["svce": .string("service"), "v_Data": .data(Data("secret".utf8)), "sync": .bool(false)]),
+        .dictionary([
+            SecItemKey(rawValue: "svce"): .string("service"),
+            SecItemKey(rawValue: "v_Data"): .data(Data("secret".utf8)),
+            SecItemKey(rawValue: "sync"): .bool(false),
+        ]),
     ])
     func roundTripsThroughCoreFoundation(_ value: SecValue) {
         #expect(SecValue(cf: value.cfValue) == value)
@@ -38,16 +42,33 @@ import Testing
     }
 
     @Test func dictionaryKeysAreRawConstantStrings() {
-        let dictionary: SecDictionary = [kSecAttrService as String: .string("service")]
-        let roundTripped = SecDictionary(cf: dictionary.cfDictionary as NSDictionary as! [String: Any])
+        let dictionary: SecDictionary = [SecItemKey(kSecAttrService): .string("service")]
+        let roundTripped = SecDictionary(cf: dictionary.cfDictionary as NSDictionary)
         #expect(roundTripped == dictionary)
-        #expect(roundTripped["svce"] == .string("service"))
+        #expect(roundTripped?[SecItemKey(rawValue: "svce")] == .string("service"))
+    }
+
+    @Test func dictionaryWithNonStringKeyIsCarriedAsObject() {
+        let dictionary: NSDictionary = [1: "one"]
+        #expect(SecDictionary(cf: dictionary) == nil)
+        #expect(SecValue(cf: dictionary) == .object(SecObject(dictionary)))
     }
 
     @Test func booleansAndNumbersAreNotConfused() {
         #expect(SecValue(cf: kCFBooleanTrue) == .bool(true))
         #expect(SecValue(cf: 1 as CFNumber) == .integer(1))
         #expect(SecValue(cf: UInt32.max as CFNumber) == .integer(Int64(UInt32.max)))
+    }
+
+    @Test func numbersAreIntegersOnlyWhenExact() {
+        #expect(SecValue(cf: NSNumber(value: Int64.min)) == .integer(.min))
+        #expect(SecValue(cf: NSNumber(value: Int64.max)) == .integer(.max))
+        #expect(SecValue(cf: NSNumber(value: 2.0)) == .integer(2))
+
+        let fraction = NSNumber(value: 1.5)
+        #expect(SecValue(cf: fraction) == .object(SecObject(fraction)))
+        let beyondInt64 = NSNumber(value: UInt64.max)
+        #expect(SecValue(cf: beyondInt64) == .object(SecObject(beyondInt64)))
     }
 
     @Test func unknownObjectsAreCarriedThrough() {
