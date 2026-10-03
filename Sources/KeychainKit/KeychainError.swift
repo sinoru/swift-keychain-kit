@@ -100,11 +100,34 @@ extension KeychainError {
     }
 }
 
+extension KeychainError {
+    /// Turns a failing `OSStatus` into a thrown `KeychainError`.
+    package static func check(_ status: OSStatus) throws(KeychainError) {
+        guard status == errSecSuccess else {
+            throw KeychainError(status: status)
+        }
+    }
+
+    /// Security reports failures in `NSOSStatusErrorDomain` with the status as the code.
+    /// Anything else, including a missing error, is reported as an invalid parameter.
+    init(cfError: CFError?) {
+        guard let cfError,
+              CFErrorGetDomain(cfError) == kCFErrorDomainOSStatus,
+              let status = OSStatus(exactly: CFErrorGetCode(cfError))
+        else {
+            self.init(code: .invalidParameter)
+            return
+        }
+        self.init(status: status)
+    }
+}
+
 extension KeychainError: CustomStringConvertible {
     /// The framework's message for the status, followed by the status in parentheses.
     public var description: String {
-        if let message = securityErrorMessage(for: status) {
-            return "\(message) (\(status))"
+        // The second argument is reserved and must always be nil.
+        if let message = SecCopyErrorMessageString(status, nil) {
+            return "\(message as String) (\(status))"
         }
         return "OSStatus \(status)"
     }

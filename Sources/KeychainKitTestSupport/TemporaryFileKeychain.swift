@@ -18,7 +18,7 @@ internal import Security
 /// process so that a misconfigured test fails with a status code instead of a dialog.
 ///
 /// The file-based keychain is the legacy implementation on macOS (see TN3137), so these tests
-/// exercise the Bridge plumbing, not data-protection semantics such as access groups.
+/// exercise the SecItem plumbing, not data-protection semantics such as access groups.
 /// `SecKeychainCreate` has been deprecated since macOS 12 but remains functional; this is the
 /// only isolated keychain available to an unsigned test runner.
 ///
@@ -32,7 +32,7 @@ public final class TemporaryFileKeychain: @unchecked Sendable {
 
     @diagnose(DeprecatedDeclaration, as: ignored)
     public init() throws(KeychainError) {
-        try Self.check(SecKeychainSetUserInteractionAllowed(false))
+        try KeychainError.check(SecKeychainSetUserInteractionAllowed(false))
 
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("KeychainKit-\(UUID().uuidString).keychain-db")
@@ -43,7 +43,7 @@ public final class TemporaryFileKeychain: @unchecked Sendable {
         let status = password.withCString { passwordPointer in
             unsafe SecKeychainCreate(path, UInt32(password.utf8.count), passwordPointer, false, nil, &reference)
         }
-        try Self.check(status)
+        try KeychainError.check(status)
         guard let reference else {
             throw KeychainError(code: .notAvailable)
         }
@@ -70,13 +70,7 @@ public final class TemporaryFileKeychain: @unchecked Sendable {
     /// Deletes the keychain and its file.
     @diagnose(DeprecatedDeclaration, as: ignored)
     public func tearDown() throws(KeychainError) {
-        try Self.check(SecKeychainDelete(keychain))
-    }
-
-    private static func check(_ status: OSStatus) throws(KeychainError) {
-        guard status == errSecSuccess else {
-            throw KeychainError(status: status)
-        }
+        try KeychainError.check(SecKeychainDelete(keychain))
     }
 }
 #endif

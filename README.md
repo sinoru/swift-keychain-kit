@@ -126,8 +126,9 @@ The full guide lives in the DocC catalog under `Sources/KeychainKit/KeychainKit.
 * **Typed everywhere.** `Attributes` expose only the properties valid for their class; `KeychainError`
   preserves the `OSStatus` and classifies the documented codes; every operation uses typed
   throws.
-* **`unsafe` stays in the bridge.** The only calls into Security's C API live in two files
-  under `Bridge/`. Everything above them is plain Swift over a `Sendable` value model.
+* **Strict memory safety.** The package builds with strict memory safety, so the few calls
+  that need it carry an `unsafe` marker. Everything else is plain Swift over a `Sendable`
+  value model.
 * **No locking of its own.** Keychain Services is thread-safe; the library does not
   serialize calls. Coordinating user-facing prompts is the caller's concern.
 * **Data protection by default.** `kSecUseDataProtectionKeychain` is set on every call so

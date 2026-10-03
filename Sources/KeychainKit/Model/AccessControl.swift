@@ -6,6 +6,9 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
+internal import Foundation
+internal import Security
+
 /// An access control object: an accessibility level plus the conditions a user must meet.
 ///
 /// The `SecAccessControl` object is created eagerly in `init`, so an invalid accessibility value
@@ -22,10 +25,24 @@ public struct AccessControl: Hashable, Sendable {
     let secObject: SecObject
 
     /// Creates the access control object now, so an unknown accessibility value fails here.
+    ///
+    /// The framework rejects an unknown accessibility value with `errSecParam`; any flag
+    /// combination is accepted at creation and judged when the item is used.
     public init(accessibility: Accessibility, flags: Flags = []) throws(KeychainError) {
+        var error: Unmanaged<CFError>?
+        let control = unsafe SecAccessControlCreateWithFlags(
+            nil,
+            accessibility.rawValue as CFString,
+            SecAccessControlCreateFlags(rawValue: flags.rawValue),
+            &error,
+        )
+        guard let control else {
+            throw KeychainError(cfError: unsafe error?.takeRetainedValue())
+        }
+
         self.accessibility = accessibility
         self.flags = flags
-        self.secObject = try makeSecAccessControl(accessibility: accessibility, flags: flags)
+        self.secObject = SecObject(control)
     }
 
     init(opaque secObject: SecObject) {
