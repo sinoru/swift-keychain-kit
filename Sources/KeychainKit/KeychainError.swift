@@ -51,12 +51,14 @@ extension KeychainError {
         /// An item with the same primary key already exists (`errSecDuplicateItem`).
         public static let duplicateItem = Code(rawValue: errSecDuplicateItem)
 
-        /// No item matched the query, or the query named an access group the caller
-        /// does not belong to (`errSecItemNotFound`).
+        /// No item matched the query (`errSecItemNotFound`).
         public static let itemNotFound = Code(rawValue: errSecItemNotFound)
 
-        /// The caller lacks an entitlement the operation needs, for example the access
-        /// group it tried to write to (`errSecMissingEntitlement`).
+        /// The caller lacks an entitlement the operation needs (`errSecMissingEntitlement`).
+        ///
+        /// Naming an access group the app does not belong to produces this code for both adds
+        /// and searches, measured on the data protection keychain, even though Apple's
+        /// documentation describes a search in such a group as returning `itemNotFound`.
         public static let missingEntitlement = Code(rawValue: errSecMissingEntitlement)
 
         /// The item is not accessible in the device's current lock state, or user interaction

@@ -103,7 +103,7 @@ let item = try keychain.first(matching: query)
 
 Items belong to exactly one ``AccessGroup``. Set a default on the ``Keychain`` or name one
 per item or query. The app must belong to the group through its entitlements, or the
-operation fails with ``KeychainError/Code/missingEntitlement``.
+operation, search or add, fails with ``KeychainError/Code/missingEntitlement``.
 
 ```swift
 let shared = Keychain(accessGroup: .keychainGroup(teamID: "ABCDE12345", name: "com.example.shared"))

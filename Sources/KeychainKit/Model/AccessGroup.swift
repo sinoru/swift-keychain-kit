@@ -11,8 +11,8 @@ internal import Security
 /// A keychain access group, the unit of sharing between apps of one team.
 ///
 /// An item belongs to exactly one group. An app belongs to its app ID group, any keychain
-/// access groups and app groups in its entitlements, and `token`. Using a group the app does
-/// not belong to fails with `errSecMissingEntitlement`.
+/// access groups and app groups in its entitlements, and `token`. Naming a group the app does
+/// not belong to fails with `errSecMissingEntitlement`, for searches as well as for adds.
 public struct AccessGroup: RawRepresentable, Hashable, Sendable {
     public let rawValue: String
 

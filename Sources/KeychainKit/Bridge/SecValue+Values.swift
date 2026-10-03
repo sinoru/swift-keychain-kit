@@ -26,10 +26,11 @@ extension SecValue {
         if case .date(let value) = self { value } else { nil }
     }
 
-    /// The file-based keychain returns boolean attributes as `CFBoolean`. The data protection
-    /// keychain is reported to return some of them, such as `kSecAttrSynchronizable`, as a
-    /// `CFNumber` holding 0 or 1; that cannot be verified from an unsigned test runner, so both
-    /// forms are accepted. Any other integer is not a boolean and reads as `nil`.
+    /// The two keychain implementations disagree on how a boolean comes back. The file-based
+    /// keychain returns `CFBoolean`; the data protection keychain returns a `CFNumber` holding
+    /// 0 or 1 for `kSecAttrIsInvisible`, `kSecAttrIsNegative`, and `kSecAttrSynchronizable`
+    /// (measured on the iOS 27 simulator with an entitled host app). Both forms are accepted.
+    /// Any other integer is not a boolean and reads as `nil`.
     package var bool: Bool? {
         switch self {
         case .bool(let value):
