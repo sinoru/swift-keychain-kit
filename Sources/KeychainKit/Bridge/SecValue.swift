@@ -23,8 +23,9 @@ package enum SecValue: Hashable, Sendable {
     case data(Data)
     /// A `CFBoolean`.
     case bool(Bool)
-    /// A `CFNumber` that fits in an `Int`, which every integer attribute does.
-    case number(Int)
+    /// A `CFNumber`, widened to `Int64` so that the full range of a `UInt32` four-character
+    /// code survives on 32-bit targets such as watchOS `arm64_32`, where `Int` is 32 bits.
+    case integer(Int64)
     /// A `CFDate`.
     case date(Date)
     /// A `CFDictionary` with string keys, as returned for attributes.
@@ -86,8 +87,8 @@ extension SecValue {
                 return
             }
         case CFNumberGetTypeID():
-            if let number = value as? Int {
-                self = .number(number)
+            if let integer = value as? Int64 {
+                self = .integer(integer)
                 return
             }
         case CFDateGetTypeID():
@@ -120,8 +121,8 @@ extension SecValue {
             data as CFData
         case .bool(let bool):
             bool ? kCFBooleanTrue : kCFBooleanFalse
-        case .number(let number):
-            number as CFNumber
+        case .integer(let integer):
+            integer as CFNumber
         case .date(let date):
             date as CFDate
         case .dictionary(let dictionary):

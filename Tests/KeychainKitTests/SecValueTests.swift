@@ -18,10 +18,13 @@ import Testing
         .data(Data([0x00, 0xFF, 0x10])),
         .bool(true),
         .bool(false),
-        .number(443),
-        .number(-1),
+        .integer(443),
+        .integer(-1),
+        .integer(0xFFFF_FFFF),
+        .integer(Int64.max),
+        .integer(Int64.min),
         .date(Date(timeIntervalSince1970: 1_700_000_000)),
-        .array([.string("a"), .number(1)]),
+        .array([.string("a"), .integer(1)]),
         .dictionary(["svce": .string("service"), "v_Data": .data(Data("secret".utf8)), "sync": .bool(false)]),
     ])
     func roundTripsThroughCoreFoundation(_ value: SecValue) {
@@ -43,7 +46,8 @@ import Testing
 
     @Test func booleansAndNumbersAreNotConfused() {
         #expect(SecValue(cf: kCFBooleanTrue) == .bool(true))
-        #expect(SecValue(cf: 1 as CFNumber) == .number(1))
+        #expect(SecValue(cf: 1 as CFNumber) == .integer(1))
+        #expect(SecValue(cf: UInt32.max as CFNumber) == .integer(Int64(UInt32.max)))
     }
 
     @Test func unknownObjectsAreCarriedThrough() {

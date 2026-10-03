@@ -64,8 +64,8 @@ import Testing
         #expect(attributes[.port] == 8443)
 
         #expect(attributes.storage[kSecAttrProtocol as String] == .string("htps"))
-        #expect(attributes.storage[kSecAttrPort as String] == .number(8443))
-        #expect(attributes.storage[kSecAttrCreator as String] == .number(0x4B_43_48_4E))
+        #expect(attributes.storage[kSecAttrPort as String] == .integer(8443))
+        #expect(attributes.storage[kSecAttrCreator as String] == .integer(0x4B_43_48_4E))
     }
 
     @Test func genericDataRoundTrips() {
@@ -95,9 +95,23 @@ import Testing
         #expect(attributes[.port] == nil)
     }
 
+    @Test func fourCharacterCodesKeepTheirTopBit() {
+        // Valid on every platform, including watchOS arm64_32 where `Int` is 32 bits.
+        var attributes = Attributes<GenericPassword>()
+        attributes[.creator] = UInt32.max
+        attributes[.type] = 0x8000_0001
+        #expect(attributes[.creator] == UInt32.max)
+        #expect(attributes[.type] == 0x8000_0001)
+        #expect(attributes.storage[kSecAttrCreator as String] == .integer(Int64(UInt32.max)))
+    }
+
     @Test func fourCharacterCodesOutsideUInt32DecodeAsNil() {
-        let attributes = Attributes<GenericPassword>(secDictionary: [kSecAttrCreator as String: .number(-1)])
+        let attributes = Attributes<GenericPassword>(secDictionary: [
+            kSecAttrCreator as String: .integer(-1),
+            kSecAttrType as String: .integer(Int64(UInt32.max) + 1),
+        ])
         #expect(attributes[.creator] == nil)
+        #expect(attributes[.type] == nil)
     }
 
     @Test func keysCompareByRawKey() {

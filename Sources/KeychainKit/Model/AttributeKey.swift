@@ -84,15 +84,21 @@ enum AttributeCodec {
         if case .bool(let bool) = value { bool } else { nil }
     }
 
-    static func encode(_ value: Int) -> SecValue { .number(value) }
+    static func encode(_ value: Int) -> SecValue { .integer(Int64(value)) }
     static func decodeInt(_ value: SecValue) -> Int? {
-        if case .number(let number) = value { number } else { nil }
+        decodeInt64(value).flatMap { Int(exactly: $0) }
     }
 
-    /// `kSecAttrCreator` and `kSecAttrType` are four-character codes stored as numbers.
-    static func encode(_ value: UInt32) -> SecValue { .number(Int(value)) }
+    static func decodeInt64(_ value: SecValue) -> Int64? {
+        if case .integer(let integer) = value { integer } else { nil }
+    }
+
+    /// `kSecAttrCreator` and `kSecAttrType` are four-character codes stored as numbers. They go
+    /// through `Int64`, never `Int`, because a code with its top bit set exceeds `Int32.max` and
+    /// `Int` is 32 bits on watchOS `arm64_32`.
+    static func encode(_ value: UInt32) -> SecValue { .integer(Int64(value)) }
     static func decodeUInt32(_ value: SecValue) -> UInt32? {
-        decodeInt(value).flatMap { UInt32(exactly: $0) }
+        decodeInt64(value).flatMap { UInt32(exactly: $0) }
     }
 
     static func encode(_ value: Date) -> SecValue { .date(value) }
