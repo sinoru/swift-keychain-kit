@@ -31,8 +31,8 @@ if let item = try keychain.first(matching: Query(service: "com.example.app", acc
 
 ## Requirements
 
-* Swift 6.4 (Xcode 27)
-* macOS 14, iOS 17, tvOS 17, watchOS 10, or visionOS 1
+* Swift 6.2 (Xcode 26) or later
+* macOS 12, iOS 15, tvOS 15, watchOS 9, or visionOS 1
 
 ## Getting Started
 

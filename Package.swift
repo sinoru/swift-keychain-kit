@@ -1,4 +1,4 @@
-// swift-tools-version: 6.4
+// swift-tools-version: 6.2
 //
 //  Package.swift
 //  KeychainKit
@@ -25,10 +25,10 @@ let commonSwiftSettings: [SwiftSetting] = [
 let package = Package(
     name: "KeychainKit",
     platforms: [
-        .macOS(.v14),
-        .iOS(.v17),
-        .tvOS(.v17),
-        .watchOS(.v10),
+        .macOS(.v12),
+        .iOS(.v15),
+        .tvOS(.v15),
+        .watchOS(.v9),
         .visionOS(.v1),
     ],
     products: [

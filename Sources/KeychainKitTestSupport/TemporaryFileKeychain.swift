@@ -30,7 +30,9 @@ public final class TemporaryFileKeychain: @unchecked Sendable {
 
     private let keychain: SecKeychain
 
+    #if compiler(>=6.4)
     @diagnose(DeprecatedDeclaration, as: ignored)
+    #endif
     public init() throws(KeychainError) {
         try KeychainError.check(SecKeychainSetUserInteractionAllowed(false))
 
@@ -40,9 +42,7 @@ public final class TemporaryFileKeychain: @unchecked Sendable {
         let password = UUID().uuidString
 
         var reference: SecKeychain?
-        let status = password.withCString { passwordPointer in
-            unsafe SecKeychainCreate(path, UInt32(password.utf8.count), passwordPointer, false, nil, &reference)
-        }
+        let status = unsafe SecKeychainCreate(path, UInt32(password.utf8.count), password, false, nil, &reference)
         try KeychainError.check(status)
         guard let reference else {
             throw KeychainError(code: .notAvailable)
@@ -68,7 +68,9 @@ public final class TemporaryFileKeychain: @unchecked Sendable {
     }
 
     /// Deletes the keychain and its file.
+    #if compiler(>=6.4)
     @diagnose(DeprecatedDeclaration, as: ignored)
+    #endif
     public func tearDown() throws(KeychainError) {
         try KeychainError.check(SecKeychainDelete(keychain))
     }

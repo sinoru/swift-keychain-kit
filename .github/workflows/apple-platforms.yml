@@ -1,7 +1,7 @@
 # Builds the package for every Apple platform it declares support for, through
 # the Xcode build system, and runs its tests wherever a runner can boot the
-# destination. This package supports Apple platforms only and requires Swift
-# 6.4, so one workflow on one Xcode is the whole matrix.
+# destination. This package supports Apple platforms only, so this one
+# workflow is the whole matrix.
 
 name: Apple Platforms
 
@@ -26,14 +26,20 @@ concurrency:
 
 jobs:
   build:
-    name: ${{ matrix.platform.name }}
-    # Xcode 27 ships only on the macOS 27 preview image.
-    runs-on: xcode-27
+    name: ${{ matrix.platform.name }} · ${{ matrix.xcode.name }}
+    runs-on: ${{ matrix.xcode.runner }}
     timeout-minutes: 30
     env:
-      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+      DEVELOPER_DIR: ${{ matrix.xcode.developer_dir }}
     strategy:
       fail-fast: false
+      # Two axes, crossed. The Xcode axis is the newest patch of each Swift
+      # minor the package supports, and it moves the platform SDKs along with
+      # the compiler. An entry names its runner too, because no one image
+      # carries every Xcode: Xcode 27 is only on `xcode-27`, a preview of the
+      # macOS 27 image, and nothing older is on it. Swift 6.2 ends with Xcode
+      # 26.3; Swift 6.3 starts with Xcode 26.4.
+      #
       # Device and simulator are separate SDKs and target triples, so they fail
       # independently. The watchOS device row is the only one that compiles the
       # arm64_32 slice, where `Int` is 32 bits; nothing can run it, so it stops
@@ -42,6 +48,16 @@ jobs:
       # against whatever device the image carries so a renamed device does not
       # rot the matrix.
       matrix:
+        xcode:
+          - name: "Swift 6.2.4"
+            runner: macos-26
+            developer_dir: /Applications/Xcode_26.3.app/Contents/Developer
+          - name: "Swift 6.3.3"
+            runner: macos-26
+            developer_dir: /Applications/Xcode_26.6.app/Contents/Developer
+          - name: "Swift 6.4"
+            runner: xcode-27
+            developer_dir: /Applications/Xcode_27.0.app/Contents/Developer
         platform:
           - name: "macOS"
             destination: "generic/platform=macOS"
@@ -54,22 +70,26 @@ jobs:
           - name: "iOS Simulator"
             destination: "generic/platform=iOS Simulator"
             simulator_runtime: iOS
+            simulator_sdk: iphonesimulator
           - name: "tvOS"
             destination: "generic/platform=tvOS"
           - name: "tvOS Simulator"
             destination: "generic/platform=tvOS Simulator"
             simulator_runtime: tvOS
+            simulator_sdk: appletvsimulator
           - name: "watchOS"
             destination: "generic/platform=watchOS"
           - name: "watchOS Simulator"
             destination: "generic/platform=watchOS Simulator"
             simulator_runtime: watchOS
+            simulator_sdk: watchsimulator
           - name: "visionOS"
             destination: "generic/platform=visionOS"
           # visionOS answers to xrOS in CoreSimulator's runtime identifiers.
           - name: "visionOS Simulator"
             destination: "generic/platform=visionOS Simulator"
             simulator_runtime: xrOS
+            simulator_sdk: xrsimulator
     steps:
       - uses: actions/checkout@v7
       - run: xcodebuild -version
@@ -95,13 +115,17 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/DerivedData"
 
       # macOS and Mac Catalyst name themselves; a simulator row states its
-      # runtime and this picks a device out of the image's copy of it. A device
+      # runtime and this picks a device out of the image's copy of it. An image
+      # carries one runtime per Xcode it has, so the lookup is held to the
+      # version of this Xcode's own simulator SDK (26.2 -> iOS-26-2) rather
+      # than taking whichever runtime the list happens to start with. A device
       # row leaves the variable empty and the test step drops out.
       - name: Resolve the test destination
         run: |
           if [ -n "${{ matrix.platform.simulator_runtime }}" ]; then
+            version=$(xcrun --sdk "${{ matrix.platform.simulator_sdk }}" --show-sdk-version | tr . -)
             udid=$(xcrun simctl list devices available --json | jq -er \
-              --arg prefix "com.apple.CoreSimulator.SimRuntime.${{ matrix.platform.simulator_runtime }}" \
+              --arg prefix "com.apple.CoreSimulator.SimRuntime.${{ matrix.platform.simulator_runtime }}-$version" \
               '[.devices | to_entries[] | select(.key | startswith($prefix)) | .value[]][0].udid')
             echo "TEST_DESTINATION=id=$udid" >> "$GITHUB_ENV"
           else
