@@ -66,6 +66,18 @@ import KeychainKitTestSupport
         }
     }
 
+    @Test func booleanAttributesRoundTripThroughTheFramework() throws {
+        try withKeychain { keychain in
+            var item = item(account: "one", data: "secret")
+            item[.isInvisible] = true
+            item[.isNegative] = false
+            try keychain.add(item)
+            let found = try #require(try keychain.first(matching: query(account: "one")))
+            #expect(found[.isInvisible] == true)
+            #expect(found[.isNegative] == false)
+        }
+    }
+
     @Test func attributesReturnNoData() throws {
         try withKeychain { keychain in
             try keychain.add(item(account: "one", data: "secret"))

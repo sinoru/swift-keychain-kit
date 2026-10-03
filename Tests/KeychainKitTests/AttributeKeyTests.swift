@@ -90,6 +90,19 @@ import Testing
         #expect(attributes.storage[kSecClass as String] == nil)
     }
 
+    @Test func booleansDecodeFromBooleanOrZeroOneIntegers() {
+        func decode(_ value: SecValue) -> Bool? {
+            Attributes<GenericPassword>(secDictionary: [kSecAttrSynchronizable as String: value])[.synchronizable]
+        }
+        #expect(decode(.bool(true)) == true)
+        #expect(decode(.bool(false)) == false)
+        #expect(decode(.integer(1)) == true)
+        #expect(decode(.integer(0)) == false)
+        #expect(decode(.integer(2)) == nil)
+        #expect(decode(.integer(-1)) == nil)
+        #expect(decode(.string("1")) == nil)
+    }
+
     @Test func mismatchedStoredTypeDecodesAsNil() {
         let attributes = Attributes<InternetPassword>(secDictionary: [kSecAttrPort as String: .string("not a number")])
         #expect(attributes[.port] == nil)

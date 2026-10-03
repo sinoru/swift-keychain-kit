@@ -80,8 +80,22 @@ enum AttributeCodec {
     }
 
     static func encode(_ value: Bool) -> SecValue { .bool(value) }
+
+    /// The file-based keychain returns boolean attributes as `CFBoolean`. The data protection
+    /// keychain is reported to return some of them, such as `kSecAttrSynchronizable`, as a
+    /// `CFNumber` holding 0 or 1; that cannot be verified from an unsigned test runner, so both
+    /// forms are accepted. Any other integer is not a boolean and decodes as `nil`.
     static func decodeBool(_ value: SecValue) -> Bool? {
-        if case .bool(let bool) = value { bool } else { nil }
+        switch value {
+        case .bool(let bool):
+            bool
+        case .integer(0):
+            false
+        case .integer(1):
+            true
+        default:
+            nil
+        }
     }
 
     static func encode(_ value: Int) -> SecValue { .integer(Int64(value)) }
