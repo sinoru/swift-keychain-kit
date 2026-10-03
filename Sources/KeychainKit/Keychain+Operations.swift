@@ -200,8 +200,14 @@ extension Keychain {
     }
 
     /// The dictionary for `SecItemCopyMatching`.
+    ///
+    /// This is the only call that accepts `kSecUseAuthenticationUISkip`; update and delete
+    /// reject it with `errSecParam`, so it is added here rather than in the query itself.
     package func requestDictionary<Class>(for query: Query<Class>, returning keys: ResultKeys, all: Bool) -> SecDictionary {
         var dictionary = baseDictionary(for: query)
+        if query.skipsItemsRequiringAuthentication {
+            dictionary[Keys.useAuthenticationUI] = .string(Keys.useAuthenticationUISkip)
+        }
         if keys.contains(.data) {
             dictionary[Keys.returnData] = .bool(true)
         }
@@ -354,6 +360,8 @@ private enum Keys {
     static let matchLimit = kSecMatchLimit as String
     static let matchLimitAll = kSecMatchLimitAll as String
     static let useDataProtectionKeychain = kSecUseDataProtectionKeychain as String
+    static let useAuthenticationUI = kSecUseAuthenticationUI as String
+    static let useAuthenticationUISkip = kSecUseAuthenticationUISkip as String
     #if canImport(LocalAuthentication) && !os(tvOS)
     static let useAuthenticationContext = kSecUseAuthenticationContext as String
     #endif

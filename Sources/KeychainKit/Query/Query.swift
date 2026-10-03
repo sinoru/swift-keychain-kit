@@ -24,7 +24,9 @@ public struct Query<Class: ItemClass>: Hashable, Sendable {
 
     /// Skip items that would prompt the user for authentication (`kSecUseAuthenticationUISkip`).
     ///
-    /// Only meaningful for searches; the framework ignores it elsewhere.
+    /// Applies to searches only. The framework accepts the option solely for
+    /// `SecItemCopyMatching` and rejects an update or delete that carries it with `errSecParam`,
+    /// so the library leaves it out of those two calls.
     public var skipsItemsRequiringAuthentication = false
 
     /// Restrict the search to the item a persistent reference points at.
@@ -46,7 +48,8 @@ public struct Query<Class: ItemClass>: Hashable, Sendable {
         set { attributes[key] = newValue }
     }
 
-    /// The dictionary for a `SecItem*` call, before any `kSecReturn*` or `kSecMatchLimit` key.
+    /// The dictionary for a `SecItem*` call, before any `kSecReturn*`, `kSecMatchLimit`, or
+    /// search-only key.
     package var secDictionary: SecDictionary {
         var dictionary = attributes.secDictionary
         dictionary[kSecClass as String] = .string(Class.secClass as String)
@@ -59,9 +62,6 @@ public struct Query<Class: ItemClass>: Hashable, Sendable {
             dictionary[kSecAttrSynchronizable as String] = .bool(true)
         case .any:
             dictionary[kSecAttrSynchronizable as String] = .string(kSecAttrSynchronizableAny as String)
-        }
-        if skipsItemsRequiringAuthentication {
-            dictionary[kSecUseAuthenticationUI as String] = .string(kSecUseAuthenticationUISkip as String)
         }
         if let persistentReference {
             dictionary[kSecValuePersistentRef as String] = .data(persistentReference.rawValue)

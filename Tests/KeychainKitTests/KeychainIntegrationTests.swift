@@ -144,6 +144,20 @@ import KeychainKitTestSupport
         }
     }
 
+    @Test func mutationsAcceptAQueryThatSkipsProtectedItems() throws {
+        // The file-based keychain ignores the skip option, so this guards the request shape
+        // rather than the data protection keychain's rejection of it, which is unit-tested.
+        try withKeychain { keychain in
+            try keychain.add(item(account: "one", data: "1"))
+            var skipping = query(account: "one")
+            skipping.skipsItemsRequiringAuthentication = true
+            try keychain.update(matching: skipping, with: Item(data: Data("2".utf8)))
+            #expect(try keychain.data(matching: skipping) == Data("2".utf8))
+            try keychain.delete(matching: skipping)
+            #expect(try keychain.first(matching: skipping) == nil)
+        }
+    }
+
     @Test func updateThrowsWhenNothingMatches() throws {
         try withKeychain { keychain in
             #expect(throws: KeychainError(code: .itemNotFound)) {

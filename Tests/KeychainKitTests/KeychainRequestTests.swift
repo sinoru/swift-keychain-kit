@@ -97,6 +97,15 @@ import KeychainKitTestSupport
         #expect(ungrouped[kSecAttrAccessGroup as String] == .string("TEAM.default"))
     }
 
+    @Test func skipFlagReachesSearchesButNotMutations() {
+        var skipping = query
+        skipping.skipsItemsRequiringAuthentication = true
+        let keychain = Keychain()
+        #expect(keychain.requestDictionary(for: skipping, returning: .data, all: false)[kSecUseAuthenticationUI as String] == .string(kSecUseAuthenticationUISkip as String))
+        #expect(keychain.requestDictionary(for: query, returning: .data, all: false)[kSecUseAuthenticationUI as String] == nil)
+        #expect(keychain.dictionary(for: skipping)[kSecUseAuthenticationUI as String] == nil)
+    }
+
     @Test func updateAndDeleteAskForEveryMatch() {
         let dictionary = Keychain().dictionary(for: query)
         #expect(dictionary[kSecMatchLimit as String] == .string(kSecMatchLimitAll as String))
