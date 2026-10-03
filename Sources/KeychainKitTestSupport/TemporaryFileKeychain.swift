@@ -52,6 +52,11 @@ public final class TemporaryFileKeychain: @unchecked Sendable {
         self.keychain = reference
     }
 
+    /// The storage handle for a `Keychain` that should target this keychain.
+    public var fileKeychain: FileKeychain {
+        FileKeychain(reference: keychain)
+    }
+
     /// The `kSecUseKeychain` entry that directs `SecItemAdd` at this keychain.
     package var useKeychainEntry: SecDictionary {
         [kSecUseKeychain as String: .object(SecObject(keychain))]

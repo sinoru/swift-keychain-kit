@@ -27,11 +27,15 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
 
     /// Builds attributes from a dictionary the framework returned.
     ///
-    /// The class key is dropped because `Class` already carries it. An access control object
-    /// becomes an opaque `AccessControl` whose constraints are unknown.
+    /// The class key is dropped because `Class` already carries it, and the `kSecValue*` entries
+    /// are dropped because they are not attributes. An access control object becomes an opaque
+    /// `AccessControl` whose constraints are unknown.
     package init(secDictionary: SecDictionary) {
         var storage = secDictionary
         storage[Keys.itemClass] = nil
+        for key in Keys.values {
+            storage[key] = nil
+        }
         if case .object(let object)? = storage.removeValue(forKey: Keys.accessControl) {
             accessControl = AccessControl(opaque: object)
         }
@@ -95,4 +99,5 @@ private enum Keys {
     static let itemClass = kSecClass as String
     static let accessible = kSecAttrAccessible as String
     static let accessControl = kSecAttrAccessControl as String
+    static let values = [kSecValueData, kSecValueRef, kSecValuePersistentRef].map { $0 as String }
 }
