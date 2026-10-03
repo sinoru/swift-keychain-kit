@@ -6,7 +6,7 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
-#if canImport(LocalAuthentication)
+#if canImport(LocalAuthentication) && !os(tvOS)
 public import LocalAuthentication
 
 /// An `LAContext` to use for `kSecUseAuthenticationContext`.
@@ -19,7 +19,8 @@ public import LocalAuthentication
 /// flight. The framework reads it once per call and this library never retains it past the
 /// call, which is the basis for the unchecked `Sendable` conformance. Compares by identity.
 ///
-/// Unavailable on tvOS, which has no LocalAuthentication framework.
+/// Unavailable on tvOS: its simulator SDK ships the framework, but `LAContext` itself is
+/// marked unavailable there, so `canImport` alone is not a sufficient guard.
 public struct AuthenticationContext: Hashable, @unchecked Sendable {
     /// The wrapped context.
     public let context: LAContext

@@ -99,8 +99,12 @@ import KeychainKitTestSupport
 
     @Test func itemsStayOutOfTheDefaultSearchList() throws {
         try withTemporaryKeychain { keychain in
-            try Keychain.secItemAdd(genericPassword(in: keychain, account: "isolated-\(UUID().uuidString)"))
-            var query = query(in: keychain, extra: [kSecReturnAttributes as String: .bool(true)])
+            let account = "isolated-\(UUID().uuidString)"
+            try Keychain.secItemAdd(genericPassword(in: keychain, account: account))
+            // The same account through the temporary keychain is found; through the default
+            // search list it must not be.
+            var query = query(in: keychain, account: account, extra: [kSecReturnAttributes as String: .bool(true)])
+            #expect(try Keychain.secItemCopyMatching(query) != nil)
             query[kSecMatchSearchList as String] = nil
             #expect(throws: KeychainError(code: .itemNotFound)) {
                 try Keychain.secItemCopyMatching(query)

@@ -80,7 +80,7 @@ import KeychainKitTestSupport
         var attributes = Attributes<GenericPassword>()
         attributes[.accessGroup] = AccessGroup(rawValue: "TEAM.shared")
         let dictionary = keychain.requestDictionary(
-            for: keychain.dataQuery(for: attributes, reference: PersistentReference(rawValue: Data([7]))),
+            for: keychain.dataQuery(for: attributes, reference: PersistentReference(rawValue: Data([7])), inheriting: query),
             returning: .data,
             all: false,
         )
@@ -90,7 +90,7 @@ import KeychainKitTestSupport
         #expect(dictionary[kSecReturnData as String] == .bool(true))
 
         let ungrouped = keychain.requestDictionary(
-            for: keychain.dataQuery(for: Attributes<GenericPassword>(), reference: PersistentReference(rawValue: Data([7]))),
+            for: keychain.dataQuery(for: Attributes<GenericPassword>(), reference: PersistentReference(rawValue: Data([7])), inheriting: query),
             returning: .data,
             all: false,
         )

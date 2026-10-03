@@ -6,7 +6,7 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
-#if canImport(LocalAuthentication)
+#if canImport(LocalAuthentication) && !os(tvOS)
 import Foundation
 import LocalAuthentication
 import Security
@@ -38,6 +38,18 @@ import Testing
         let item = Item<GenericPassword>(data: Data())
         #expect(isSameContext(keychain.addDictionary(for: item, authenticationContext: AuthenticationContext(context))[kSecUseAuthenticationContext as String], as: context))
         #expect(keychain.addDictionary(for: item, authenticationContext: nil)[kSecUseAuthenticationContext as String] == nil)
+    }
+
+    @Test func dataQueriesInheritTheContextButNotTheSkipFlag() {
+        let context = LAContext()
+        var original = Query<GenericPassword>()
+        original.authenticationContext = AuthenticationContext(context)
+        original.skipsItemsRequiringAuthentication = true
+        let keychain = Keychain()
+        let dataQuery = keychain.dataQuery(for: Attributes(), reference: PersistentReference(rawValue: Data([1])), inheriting: original)
+        #expect(dataQuery.authenticationContext == AuthenticationContext(context))
+        #expect(!dataQuery.skipsItemsRequiringAuthentication)
+        #expect(isSameContext(keychain.requestDictionary(for: dataQuery, returning: .data, all: false)[kSecUseAuthenticationContext as String], as: context))
     }
 
     @Test func comparesByIdentity() {

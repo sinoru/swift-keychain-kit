@@ -12,7 +12,7 @@ internal import Security
 extension Keychain {
     // MARK: Create
 
-    #if canImport(LocalAuthentication)
+    #if canImport(LocalAuthentication) && !os(tvOS)
     /// Adds an item and returns its persistent reference.
     ///
     /// Requesting the reference costs nothing extra, so it is always returned and may be ignored.
@@ -86,7 +86,7 @@ extension Keychain {
         items.reserveCapacity(values.count)
         for value in values {
             let (attributes, reference) = try Self.attributesAndReference(from: value) as (Attributes<Class>, PersistentReference)
-            let data = try data(matching: dataQuery(for: attributes, reference: reference))
+            let data = try data(matching: dataQuery(for: attributes, reference: reference, inheriting: query))
             items.append(Item(attributes: attributes, data: data))
         }
         return items
@@ -173,7 +173,7 @@ extension Keychain {
         package static let persistentReference = ResultKeys(rawValue: 1 << 2)
     }
 
-    #if canImport(LocalAuthentication)
+    #if canImport(LocalAuthentication) && !os(tvOS)
     /// The dictionary for `SecItemAdd`.
     package func addDictionary<Class>(
         for item: borrowing Item<Class>,
@@ -247,12 +247,22 @@ extension Keychain {
     /// The per-item query `all(matching:)` uses to fetch data by persistent reference.
     ///
     /// It carries the item's own access group so that a search in a non-default group is not
-    /// redirected to the default, and matches synchronizable items too.
-    package func dataQuery<Class>(for attributes: Attributes<Class>, reference: PersistentReference) -> Query<Class> {
+    /// redirected to the default, matches synchronizable items too, and inherits the original
+    /// query's authentication context so a protected item is read with the credentials the
+    /// caller supplied. `skipsItemsRequiringAuthentication` is not inherited: the first call
+    /// already filtered those items out.
+    package func dataQuery<Class>(
+        for attributes: Attributes<Class>,
+        reference: PersistentReference,
+        inheriting original: Query<Class>,
+    ) -> Query<Class> {
         var query = Query<Class>()
         query.persistentReference = reference
         query.synchronizable = .any
         query[.accessGroup] = attributes[.accessGroup]
+        #if canImport(LocalAuthentication) && !os(tvOS)
+        query.authenticationContext = original.authenticationContext
+        #endif
         return query
     }
 
@@ -344,7 +354,7 @@ private enum Keys {
     static let matchLimit = kSecMatchLimit as String
     static let matchLimitAll = kSecMatchLimitAll as String
     static let useDataProtectionKeychain = kSecUseDataProtectionKeychain as String
-    #if canImport(LocalAuthentication)
+    #if canImport(LocalAuthentication) && !os(tvOS)
     static let useAuthenticationContext = kSecUseAuthenticationContext as String
     #endif
     #if os(macOS)

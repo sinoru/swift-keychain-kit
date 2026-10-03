@@ -19,7 +19,7 @@ public import Foundation
 /// body reaches the synchronous implementation through a function reference with an explicit
 /// synchronous type.
 extension Keychain {
-    #if canImport(LocalAuthentication)
+    #if canImport(LocalAuthentication) && !os(tvOS)
     /// The asynchronous form of ``add(_:authenticationContext:)``.
     @discardableResult
     @concurrent
