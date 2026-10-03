@@ -12,7 +12,7 @@ internal import Security
 /// One value in a SecItem dictionary, in Swift terms.
 ///
 /// `SecItem*` take and return `CFDictionary`s whose values are a small closed set of CF
-/// types. Modelling that set as an enum gives the rest of the library, and the test backends,
+/// types. Modelling that set as an enum gives the rest of the library, and the test stores,
 /// a `Sendable`, `Hashable` representation that never has to touch `CFTypeRef` or `Any`.
 /// `kSec*` constants are `CFString`s and are stored as their raw string (`"svce"`, `"genp"`);
 /// the Security framework accepts those strings in place of the constants.

@@ -22,15 +22,8 @@ public struct Keychain: Sendable {
     /// and searches every group the app belongs to.
     public var accessGroup: AccessGroup?
 
-    let backend: any KeychainBackend
-
     /// A keychain backed by the Security framework.
     public init(storage: Storage = .dataProtection, accessGroup: AccessGroup? = nil) {
-        self.init(backend: SecurityBackend(), storage: storage, accessGroup: accessGroup)
-    }
-
-    package init(backend: any KeychainBackend, storage: Storage, accessGroup: AccessGroup?) {
-        self.backend = backend
         self.storage = storage
         self.accessGroup = accessGroup
     }

@@ -1,5 +1,5 @@
 //
-//  SecurityBackendIntegrationTests.swift
+//  SecItemIntegrationTests.swift
 //  KeychainKitTests
 //
 //  Copyright (c) 2026 Kang Jaehong
@@ -14,14 +14,12 @@ import Testing
 @testable import KeychainKit
 import KeychainKitTestSupport
 
-/// Runs the real `SecurityBackend` against a temporary file-based keychain.
+/// Runs the raw SecItem calls against a temporary file-based keychain.
 ///
 /// Each test owns its keychain, so the suite can run in parallel with everything else. The
 /// keychain lives in the temporary directory and is deleted at the end of each test; nothing
 /// touches the login keychain.
-@Suite struct SecurityBackendIntegrationTests {
-    private let backend = SecurityBackend()
-
+@Suite struct SecItemIntegrationTests {
     private func withTemporaryKeychain(_ body: (TemporaryFileKeychain) throws -> Void) throws {
         let keychain = try TemporaryFileKeychain()
         defer { try? keychain.tearDown() }
@@ -47,25 +45,25 @@ import KeychainKitTestSupport
 
     @Test func addsAndReadsBackData() throws {
         try withTemporaryKeychain { keychain in
-            try backend.add(genericPassword(in: keychain))
-            let result = try backend.copyMatching(query(in: keychain, extra: [kSecReturnData as String: .bool(true)]))
+            try Keychain.secItemAdd(genericPassword(in: keychain))
+            let result = try Keychain.secItemCopyMatching(query(in: keychain, extra: [kSecReturnData as String: .bool(true)]))
             #expect(result == .data(Data("secret".utf8)))
         }
     }
 
     @Test func rejectsDuplicates() throws {
         try withTemporaryKeychain { keychain in
-            try backend.add(genericPassword(in: keychain))
+            try Keychain.secItemAdd(genericPassword(in: keychain))
             #expect(throws: KeychainError(code: .duplicateItem)) {
-                try backend.add(genericPassword(in: keychain))
+                try Keychain.secItemAdd(genericPassword(in: keychain))
             }
         }
     }
 
     @Test func returnsAttributesAndDataTogether() throws {
         try withTemporaryKeychain { keychain in
-            try backend.add(genericPassword(in: keychain))
-            let result = try backend.copyMatching(query(in: keychain, extra: [
+            try Keychain.secItemAdd(genericPassword(in: keychain))
+            let result = try Keychain.secItemCopyMatching(query(in: keychain, extra: [
                 kSecReturnData as String: .bool(true),
                 kSecReturnAttributes as String: .bool(true),
             ]))
@@ -82,30 +80,30 @@ import KeychainKitTestSupport
 
     @Test func updatesData() throws {
         try withTemporaryKeychain { keychain in
-            try backend.add(genericPassword(in: keychain))
-            try backend.update(query(in: keychain), with: [kSecValueData as String: .data(Data("changed".utf8))])
-            let result = try backend.copyMatching(query(in: keychain, extra: [kSecReturnData as String: .bool(true)]))
+            try Keychain.secItemAdd(genericPassword(in: keychain))
+            try Keychain.secItemUpdate(query(in: keychain), with: [kSecValueData as String: .data(Data("changed".utf8))])
+            let result = try Keychain.secItemCopyMatching(query(in: keychain, extra: [kSecReturnData as String: .bool(true)]))
             #expect(result == .data(Data("changed".utf8)))
         }
     }
 
     @Test func deletesAndThenReportsNotFound() throws {
         try withTemporaryKeychain { keychain in
-            try backend.add(genericPassword(in: keychain))
-            try backend.delete(query(in: keychain))
+            try Keychain.secItemAdd(genericPassword(in: keychain))
+            try Keychain.secItemDelete(query(in: keychain))
             #expect(throws: KeychainError(code: .itemNotFound)) {
-                try backend.copyMatching(query(in: keychain, extra: [kSecReturnData as String: .bool(true)]))
+                try Keychain.secItemCopyMatching(query(in: keychain, extra: [kSecReturnData as String: .bool(true)]))
             }
         }
     }
 
     @Test func itemsStayOutOfTheDefaultSearchList() throws {
         try withTemporaryKeychain { keychain in
-            try backend.add(genericPassword(in: keychain, account: "isolated-\(UUID().uuidString)"))
+            try Keychain.secItemAdd(genericPassword(in: keychain, account: "isolated-\(UUID().uuidString)"))
             var query = query(in: keychain, extra: [kSecReturnAttributes as String: .bool(true)])
             query[kSecMatchSearchList as String] = nil
             #expect(throws: KeychainError(code: .itemNotFound)) {
-                try backend.copyMatching(query)
+                try Keychain.secItemCopyMatching(query)
             }
         }
     }

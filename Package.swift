@@ -37,26 +37,15 @@ let package = Package(
             targets: ["KeychainKit"]
         ),
     ],
-    dependencies: [
-        // Synchronizes the in-memory backend in the test-support target. The library itself has no dependencies.
-        .package(
-            url: "https://github.com/sinoru/swift-synchronization-kit.git",
-            from: "1.1.2",
-            traits: ["Mutex"]
-        ),
-    ],
     targets: [
         .target(
             name: "KeychainKit",
             swiftSettings: commonSwiftSettings,
         ),
-        // In-memory backend and temporary-keychain fixtures. Not part of any product.
+        // Temporary-keychain fixtures for the integration tests. Not part of any product.
         .target(
             name: "KeychainKitTestSupport",
-            dependencies: [
-                "KeychainKit",
-                .product(name: "SynchronizationKit", package: "swift-synchronization-kit"),
-            ],
+            dependencies: ["KeychainKit"],
             swiftSettings: commonSwiftSettings,
         ),
         .testTarget(

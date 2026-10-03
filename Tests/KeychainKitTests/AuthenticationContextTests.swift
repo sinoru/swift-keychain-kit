@@ -13,15 +13,8 @@ import Security
 import Testing
 
 @testable import KeychainKit
-import KeychainKitTestSupport
 
 @Suite struct AuthenticationContextTests {
-    private let backend = RecordingKeychainBackend()
-
-    private var keychain: Keychain {
-        Keychain(backend: backend, storage: .dataProtection, accessGroup: nil)
-    }
-
     private func isSameContext(_ value: SecValue?, as context: LAContext) -> Bool {
         guard case .object(let object)? = value else {
             return false
@@ -29,25 +22,22 @@ import KeychainKitTestSupport
         return object.reference === context
     }
 
-    @Test func queriesCarryTheContext() throws {
+    @Test func queriesCarryTheContext() {
         let context = LAContext()
         var query = Query<GenericPassword>()
         query.authenticationContext = AuthenticationContext(context)
-        _ = try keychain.first(matching: query)
-        try keychain.update(matching: query, with: Item(data: Data()))
-        try keychain.delete(matching: query)
-        #expect(backend.calls.count == 3)
-        #expect(backend.calls.allSatisfy { isSameContext($0.dictionary[kSecUseAuthenticationContext as String], as: context) })
+        let keychain = Keychain()
+        #expect(isSameContext(keychain.dictionary(for: query)[kSecUseAuthenticationContext as String], as: context))
+        #expect(isSameContext(keychain.requestDictionary(for: query, returning: .data, all: false)[kSecUseAuthenticationContext as String], as: context))
+        #expect(keychain.dictionary(for: Query<GenericPassword>())[kSecUseAuthenticationContext as String] == nil)
     }
 
-    @Test func addCarriesTheContext() throws {
-        backend.respond(with: .data(Data([1])))
+    @Test func addCarriesTheContext() {
         let context = LAContext()
-        try keychain.add(Item<GenericPassword>(data: Data()), authenticationContext: AuthenticationContext(context))
-        #expect(isSameContext(backend.calls.last?.dictionary[kSecUseAuthenticationContext as String], as: context))
-
-        try keychain.add(Item<GenericPassword>(data: Data()))
-        #expect(backend.calls.last?.dictionary[kSecUseAuthenticationContext as String] == nil)
+        let keychain = Keychain()
+        let item = Item<GenericPassword>(data: Data())
+        #expect(isSameContext(keychain.addDictionary(for: item, authenticationContext: AuthenticationContext(context))[kSecUseAuthenticationContext as String], as: context))
+        #expect(keychain.addDictionary(for: item, authenticationContext: nil)[kSecUseAuthenticationContext as String] == nil)
     }
 
     @Test func comparesByIdentity() {

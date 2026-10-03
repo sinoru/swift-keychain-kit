@@ -124,8 +124,8 @@ The full guide lives in the DocC catalog under `Sources/KeychainKit/KeychainKit.
 * **Typed everywhere.** `Attributes` accept only valid keys for their class; `KeychainError`
   preserves the `OSStatus` and classifies the documented codes; every operation uses typed
   throws.
-* **`unsafe` stays in the bridge.** The only calls into Security's C API live in two files.
-  Everything above them is plain Swift over a `Sendable` value model.
+* **`unsafe` stays in the bridge.** The only calls into Security's C API live in two files
+  under `Bridge/`. Everything above them is plain Swift over a `Sendable` value model.
 * **No locking of its own.** Keychain Services is thread-safe; the library does not
   serialize calls. Coordinating user-facing prompts is the caller's concern.
 * **Data protection by default.** `kSecUseDataProtectionKeychain` is set on every call so
@@ -133,11 +133,11 @@ The full guide lives in the DocC catalog under `Sources/KeychainKit/KeychainKit.
 
 ## Testing
 
-Tests never touch the user's keychain. Unit tests run against an in-memory backend that
-reproduces the framework's documented semantics. Integration tests, which drive the real
-framework through the public API, run on macOS against a temporary file-based keychain
-created in the temporary directory and deleted afterwards. Data-protection behaviour such
-as access groups and biometrics requires a signed host and is outside `swift test`.
+Tests never touch the user's keychain. The request-building and result-parsing halves of
+every operation are pure functions and are tested directly. The calls into the framework are
+tested on macOS against a temporary file-based keychain created in the temporary directory
+and deleted afterwards. Data-protection behaviour such as access groups and biometrics
+requires a signed host and is outside `swift test`.
 
 ```shell
 swift test

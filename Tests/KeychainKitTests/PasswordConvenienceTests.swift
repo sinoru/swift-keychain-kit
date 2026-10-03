@@ -10,7 +10,6 @@ import Foundation
 import Testing
 
 @testable import KeychainKit
-import KeychainKitTestSupport
 
 @Suite struct PasswordConvenienceTests {
     @Test func genericPasswordInitializersSetPrimaryKeyAndData() {
@@ -49,17 +48,17 @@ import KeychainKitTestSupport
         #expect(item.password == nil)
     }
 
-    @Test func queryInitializersMatchTheItemsTheyDescribe() throws {
-        let backend = InMemoryKeychainBackend()
-        let keychain = Keychain(backend: backend, storage: .dataProtection, accessGroup: nil)
-        try keychain.add(Item(service: "service", account: "one", password: "1"))
-        try keychain.add(Item(service: "service", account: "two", password: "2"))
-        try keychain.add(Item(server: "example.com", account: "one", password: "3", port: 443))
-        try keychain.add(Item(server: "example.com", account: "one", password: "4", port: 8443))
+    @Test func queryInitializersSetOnlyWhatIsGiven() {
+        let generic = Query(service: "service", account: "two")
+        #expect(generic[.service] == "service")
+        #expect(generic[.account] == "two")
+        #expect(Query(service: "service")[.account] == nil)
 
-        #expect(try keychain.first(matching: Query(service: "service", account: "two"))?.password == "2")
-        #expect(try keychain.all(matching: Query(service: "service")).count == 2)
-        #expect(try keychain.first(matching: Query(server: "example.com", port: 8443))?.password == "4")
-        #expect(try keychain.all(matching: Query(server: "example.com", account: "one")).count == 2)
+        let internet = Query(server: "example.com", port: 8443)
+        #expect(internet[.server] == "example.com")
+        #expect(internet[.port] == 8443)
+        #expect(internet[.account] == nil)
+        #expect(internet[.internetProtocol] == nil)
+        #expect(Query(server: "example.com", account: "one", internetProtocol: .https, path: "/api")[.path] == "/api")
     }
 }
