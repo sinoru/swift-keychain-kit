@@ -24,7 +24,7 @@ extension Keychain {
     @discardableResult
     @concurrent
     public func add<Class>(
-        _ item: borrowing Item<Class>,
+        _ item: Item<Class>,
         authenticationContext: AuthenticationContext? = nil,
     ) async throws(KeychainError) -> PersistentReference {
         let synchronous: (Item<Class>, AuthenticationContext?) throws(KeychainError) -> PersistentReference = add(_:authenticationContext:)
@@ -34,7 +34,7 @@ extension Keychain {
     /// The asynchronous form of ``add(_:)``.
     @discardableResult
     @concurrent
-    public func add<Class>(_ item: borrowing Item<Class>) async throws(KeychainError) -> PersistentReference {
+    public func add<Class>(_ item: Item<Class>) async throws(KeychainError) -> PersistentReference {
         let synchronous: (Item<Class>) throws(KeychainError) -> PersistentReference = add(_:)
         return try synchronous(item)
     }
@@ -91,7 +91,7 @@ extension Keychain {
 
     /// The asynchronous form of ``update(matching:with:)``.
     @concurrent
-    public func update<Class>(matching query: Query<Class>, with changes: borrowing Item<Class>) async throws(KeychainError) {
+    public func update<Class>(matching query: Query<Class>, with changes: Item<Class>) async throws(KeychainError) {
         let synchronous: (Query<Class>, Item<Class>) throws(KeychainError) -> Void = update(matching:with:)
         try synchronous(query, changes)
     }

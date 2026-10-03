@@ -58,6 +58,16 @@ import Testing
         #expect(first.secObject != second.secObject)
     }
 
+    @Test func opaqueValuesCompareByContentsNotObjectIdentity() throws {
+        let first = AccessControl(opaque: try AccessControl(accessibility: .whenUnlocked, flags: .userPresence).secObject)
+        let second = AccessControl(opaque: try AccessControl(accessibility: .whenUnlocked, flags: .userPresence).secObject)
+        let different = AccessControl(opaque: try AccessControl(accessibility: .whenUnlocked, flags: .devicePasscode).secObject)
+        #expect(first.secObject != second.secObject)
+        #expect(first == second)
+        #expect(first.hashValue == second.hashValue)
+        #expect(first != different)
+    }
+
     @Test func mapsStatusDomainErrorsToTheirStatus() {
         let error = CFErrorCreate(nil, NSOSStatusErrorDomain as CFString, CFIndex(errSecDuplicateItem), nil)
         #expect(KeychainError(cfError: error).code == .duplicateItem)

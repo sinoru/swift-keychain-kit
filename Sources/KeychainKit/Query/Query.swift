@@ -48,23 +48,23 @@ public struct Query<Class: ItemClass>: Hashable, Sendable {
     /// search-only key.
     package var secDictionary: SecDictionary {
         var dictionary = attributes.secDictionary
-        dictionary[kSecClass as String] = .string(Class.secClass as String)
+        dictionary[Keys.itemClass] = .string(Class.secClass)
         switch synchronizable {
         case .nonSynchronizableOnly:
             // Absent is the framework's default and, on macOS, keeps the query off the
             // data protection keychain unless asked for otherwise.
-            dictionary[kSecAttrSynchronizable as String] = nil
+            dictionary[Keys.synchronizable] = nil
         case .synchronizableOnly:
-            dictionary[kSecAttrSynchronizable as String] = .bool(true)
+            dictionary[Keys.synchronizable] = .bool(true)
         case .any:
-            dictionary[kSecAttrSynchronizable as String] = .string(kSecAttrSynchronizableAny as String)
+            dictionary[Keys.synchronizable] = .string(Keys.synchronizableAny)
         }
         if let persistentReference {
-            dictionary[kSecValuePersistentRef as String] = .data(persistentReference.rawValue)
+            dictionary[Keys.valuePersistentRef] = .data(persistentReference.rawValue)
         }
         #if canImport(LocalAuthentication) && !os(tvOS)
         if let authenticationContext {
-            dictionary[kSecUseAuthenticationContext as String] = authenticationContext.secValue
+            dictionary[Keys.useAuthenticationContext] = authenticationContext.secValue
         }
         #endif
         return dictionary
@@ -81,4 +81,15 @@ public enum SynchronizableMatch: Hashable, Sendable {
 
     /// Both kinds (`kSecAttrSynchronizableAny`).
     case any
+}
+
+/// File-scoped because a type nested in a generic struct cannot hold static stored properties.
+private enum Keys {
+    static let itemClass = kSecClass as String
+    static let synchronizable = kSecAttrSynchronizable as String
+    static let synchronizableAny = kSecAttrSynchronizableAny as String
+    static let valuePersistentRef = kSecValuePersistentRef as String
+    #if canImport(LocalAuthentication) && !os(tvOS)
+    static let useAuthenticationContext = kSecUseAuthenticationContext as String
+    #endif
 }

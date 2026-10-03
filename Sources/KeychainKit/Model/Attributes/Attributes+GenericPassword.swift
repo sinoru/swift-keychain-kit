@@ -12,14 +12,14 @@ internal import Security
 extension Attributes where Class == GenericPassword {
     /// `kSecAttrService`: the service the password is for. Part of the primary key.
     public var service: String? {
-        get { value(Keys.service, as: \.string) }
-        set { setValue(newValue.map(SecValue.string), for: Keys.service) }
+        get { storage[Keys.service]?.string }
+        set { storage[Keys.service] = newValue.map(SecValue.string) }
     }
 
     /// `kSecAttrGeneric`: arbitrary user-defined data that is not part of the primary key.
     public var generic: Data? {
-        get { value(Keys.generic, as: \.data) }
-        set { setValue(newValue.map(SecValue.data), for: Keys.generic) }
+        get { storage[Keys.generic]?.data }
+        set { storage[Keys.generic] = newValue.map(SecValue.data) }
     }
 }
 

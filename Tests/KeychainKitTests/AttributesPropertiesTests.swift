@@ -21,7 +21,7 @@ import Testing
         generic.accessGroup = group
         generic.synchronizable = true
         generic.account = "account"
-        generic.description = "description"
+        generic.itemDescription = "description"
         generic.comment = "comment"
         generic.creator = 0x4B_43_48_4E
         generic.type = 0x5459_5045

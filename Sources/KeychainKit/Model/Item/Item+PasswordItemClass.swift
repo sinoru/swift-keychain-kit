@@ -15,10 +15,10 @@ extension Item where Class: PasswordItemClass {
         set { attributes.account = newValue }
     }
 
-    /// Forwards to `Attributes/description`.
-    public var description: String? {
-        get { attributes.description }
-        set { attributes.description = newValue }
+    /// Forwards to `Attributes/itemDescription`.
+    public var itemDescription: String? {
+        get { attributes.itemDescription }
+        set { attributes.itemDescription = newValue }
     }
 
     /// Forwards to `Attributes/comment`.

@@ -17,44 +17,44 @@ extension InternetPassword: PasswordItemClass {}
 extension Attributes where Class: PasswordItemClass {
     /// `kSecAttrAccount`: the account name. Part of the primary key.
     public var account: String? {
-        get { value(Keys.account, as: \.string) }
-        set { setValue(newValue.map(SecValue.string), for: Keys.account) }
+        get { storage[Keys.account]?.string }
+        set { storage[Keys.account] = newValue.map(SecValue.string) }
     }
 
     /// `kSecAttrDescription`: a user-visible description of the item.
-    public var description: String? {
-        get { value(Keys.description, as: \.string) }
-        set { setValue(newValue.map(SecValue.string), for: Keys.description) }
+    public var itemDescription: String? {
+        get { storage[Keys.description]?.string }
+        set { storage[Keys.description] = newValue.map(SecValue.string) }
     }
 
     /// `kSecAttrComment`: a user-editable comment.
     public var comment: String? {
-        get { value(Keys.comment, as: \.string) }
-        set { setValue(newValue.map(SecValue.string), for: Keys.comment) }
+        get { storage[Keys.comment]?.string }
+        set { storage[Keys.comment] = newValue.map(SecValue.string) }
     }
 
     /// `kSecAttrCreator`: the creating application, as a four-character code.
     public var creator: UInt32? {
-        get { value(Keys.creator, as: \.fourCharacterCode) }
-        set { setValue(newValue.map { SecValue(fourCharacterCode: $0) }, for: Keys.creator) }
+        get { storage[Keys.creator]?.fourCharacterCode }
+        set { storage[Keys.creator] = newValue.map { SecValue(fourCharacterCode: $0) } }
     }
 
     /// `kSecAttrType`: the item's type, as a four-character code.
     public var type: UInt32? {
-        get { value(Keys.type, as: \.fourCharacterCode) }
-        set { setValue(newValue.map { SecValue(fourCharacterCode: $0) }, for: Keys.type) }
+        get { storage[Keys.type]?.fourCharacterCode }
+        set { storage[Keys.type] = newValue.map { SecValue(fourCharacterCode: $0) } }
     }
 
     /// `kSecAttrIsInvisible`: hidden from keychain-browsing user interfaces.
     public var isInvisible: Bool? {
-        get { value(Keys.isInvisible, as: \.bool) }
-        set { setValue(newValue.map(SecValue.bool), for: Keys.isInvisible) }
+        get { storage[Keys.isInvisible]?.bool }
+        set { storage[Keys.isInvisible] = newValue.map(SecValue.bool) }
     }
 
     /// `kSecAttrIsNegative`: a placeholder whose password lives elsewhere.
     public var isNegative: Bool? {
-        get { value(Keys.isNegative, as: \.bool) }
-        set { setValue(newValue.map(SecValue.bool), for: Keys.isNegative) }
+        get { storage[Keys.isNegative]?.bool }
+        set { storage[Keys.isNegative] = newValue.map(SecValue.bool) }
     }
 }
 

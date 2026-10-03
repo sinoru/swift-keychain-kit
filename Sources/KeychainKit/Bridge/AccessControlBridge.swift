@@ -31,15 +31,13 @@ extension KeychainError {
     /// Security reports failures in `NSOSStatusErrorDomain` with the status as the code.
     /// Anything else, including a missing error, is reported as an invalid parameter.
     init(cfError: CFError?) {
-        guard let cfError else {
+        guard let cfError,
+              CFErrorGetDomain(cfError) == kCFErrorDomainOSStatus,
+              let status = OSStatus(exactly: CFErrorGetCode(cfError))
+        else {
             self.init(code: .invalidParameter)
             return
         }
-        let error = cfError as any Error as NSError
-        if error.domain == NSOSStatusErrorDomain {
-            self.init(status: OSStatus(error.code))
-        } else {
-            self.init(code: .invalidParameter)
-        }
+        self.init(status: status)
     }
 }

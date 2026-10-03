@@ -87,16 +87,6 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
     public var isEmpty: Bool {
         storage.isEmpty && accessControl == nil
     }
-
-    // MARK: Storage access for the attribute properties
-
-    func value<Value>(_ key: String, as read: (SecValue) -> Value?) -> Value? {
-        storage[key].flatMap(read)
-    }
-
-    mutating func setValue(_ value: SecValue?, for key: String) {
-        storage[key] = value
-    }
 }
 
 /// File-scoped because a type nested in a generic struct cannot hold static stored properties.

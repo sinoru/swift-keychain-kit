@@ -20,7 +20,7 @@ extension Keychain {
     /// access control requires an application password needs `authenticationContext` here too.
     @discardableResult
     public func add<Class>(
-        _ item: borrowing Item<Class>,
+        _ item: Item<Class>,
         authenticationContext: AuthenticationContext? = nil,
     ) throws(KeychainError) -> PersistentReference {
         try Self.persistentReference(fromAdd: Self.secItemAdd(addDictionary(for: item, authenticationContext: authenticationContext)))
@@ -31,7 +31,7 @@ extension Keychain {
     /// Requesting the reference costs nothing extra, so it is always returned and may be ignored.
     /// Fails with `duplicateItem` when an item with the same primary key exists.
     @discardableResult
-    public func add<Class>(_ item: borrowing Item<Class>) throws(KeychainError) -> PersistentReference {
+    public func add<Class>(_ item: Item<Class>) throws(KeychainError) -> PersistentReference {
         try Self.persistentReference(fromAdd: Self.secItemAdd(addDictionary(for: item)))
     }
     #endif
@@ -130,7 +130,7 @@ extension Keychain {
     /// Unlike the read operations this throws `itemNotFound` when nothing matches, because an
     /// update presumes the item exists. Changing a primary-key attribute to collide with another
     /// item fails with `duplicateItem`.
-    public func update<Class>(matching query: Query<Class>, with changes: borrowing Item<Class>) throws(KeychainError) {
+    public func update<Class>(matching query: Query<Class>, with changes: Item<Class>) throws(KeychainError) {
         try Self.secItemUpdate(dictionary(for: query), with: Self.updateDictionary(for: changes))
     }
 
@@ -181,7 +181,7 @@ extension Keychain {
     #if canImport(LocalAuthentication) && !os(tvOS)
     /// The dictionary for `SecItemAdd`.
     package func addDictionary<Class>(
-        for item: borrowing Item<Class>,
+        for item: Item<Class>,
         authenticationContext: AuthenticationContext?,
     ) -> SecDictionary {
         var dictionary = addDictionary(for: item)
@@ -193,9 +193,9 @@ extension Keychain {
     #endif
 
     /// The dictionary for `SecItemAdd`, before any authentication context.
-    package func addDictionary<Class>(for item: borrowing Item<Class>) -> SecDictionary {
+    package func addDictionary<Class>(for item: Item<Class>) -> SecDictionary {
         var dictionary = item.attributes.secDictionary
-        dictionary[Keys.itemClass] = .string(Class.secClass as String)
+        dictionary[Keys.itemClass] = .string(Class.secClass)
         if let data = item.data {
             dictionary[Keys.valueData] = .data(data)
         }
@@ -247,7 +247,7 @@ extension Keychain {
     }
 
     /// The second dictionary for `SecItemUpdate`: only what `changes` sets.
-    package static func updateDictionary<Class>(for changes: borrowing Item<Class>) -> SecDictionary {
+    package static func updateDictionary<Class>(for changes: Item<Class>) -> SecDictionary {
         var attributes = changes.attributes.secDictionary
         if let data = changes.data {
             attributes[Keys.valueData] = .data(data)

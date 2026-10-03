@@ -35,11 +35,12 @@ public struct AccessControl: Hashable, Sendable {
     }
 
     /// Values with known constraints compare by those constraints; opaque values compare by
-    /// the identity of the underlying object. The two kinds never compare equal.
+    /// the contents of the underlying object, so reading the same item twice yields equal
+    /// values. The two kinds never compare equal.
     public static func == (lhs: AccessControl, rhs: AccessControl) -> Bool {
         switch (lhs.flags, rhs.flags) {
         case (nil, nil):
-            lhs.secObject == rhs.secObject
+            lhs.secObject.isEquivalent(to: rhs.secObject)
         case (.some, .some):
             lhs.accessibility == rhs.accessibility && lhs.flags == rhs.flags
         default:

@@ -11,38 +11,38 @@ internal import Security
 extension Attributes where Class == InternetPassword {
     /// `kSecAttrServer`: the server's domain name or IP address. Part of the primary key.
     public var server: String? {
-        get { value(Keys.server, as: \.string) }
-        set { setValue(newValue.map(SecValue.string), for: Keys.server) }
+        get { storage[Keys.server]?.string }
+        set { storage[Keys.server] = newValue.map(SecValue.string) }
     }
 
     /// `kSecAttrSecurityDomain`: the security domain. Part of the primary key.
     public var securityDomain: String? {
-        get { value(Keys.securityDomain, as: \.string) }
-        set { setValue(newValue.map(SecValue.string), for: Keys.securityDomain) }
+        get { storage[Keys.securityDomain]?.string }
+        set { storage[Keys.securityDomain] = newValue.map(SecValue.string) }
     }
 
     /// `kSecAttrPath`: the path component of the URL. Part of the primary key.
     public var path: String? {
-        get { value(Keys.path, as: \.string) }
-        set { setValue(newValue.map(SecValue.string), for: Keys.path) }
+        get { storage[Keys.path]?.string }
+        set { storage[Keys.path] = newValue.map(SecValue.string) }
     }
 
     /// `kSecAttrProtocol`: the network protocol. Part of the primary key.
     public var internetProtocol: InternetProtocol? {
-        get { value(Keys.internetProtocol, as: { $0.constant() }) }
-        set { setValue(newValue.map { SecValue(constant: $0) }, for: Keys.internetProtocol) }
+        get { storage[Keys.internetProtocol]?.constant() }
+        set { storage[Keys.internetProtocol] = newValue.map { SecValue(constant: $0) } }
     }
 
     /// `kSecAttrAuthenticationType`: the authentication scheme. Part of the primary key.
     public var authenticationType: AuthenticationType? {
-        get { value(Keys.authenticationType, as: { $0.constant() }) }
-        set { setValue(newValue.map { SecValue(constant: $0) }, for: Keys.authenticationType) }
+        get { storage[Keys.authenticationType]?.constant() }
+        set { storage[Keys.authenticationType] = newValue.map { SecValue(constant: $0) } }
     }
 
     /// `kSecAttrPort`: the port number. Part of the primary key.
     public var port: Int? {
-        get { value(Keys.port, as: \.int) }
-        set { setValue(newValue.map { .integer(Int64($0)) }, for: Keys.port) }
+        get { storage[Keys.port]?.int }
+        set { storage[Keys.port] = newValue.map { .integer(Int64($0)) } }
     }
 }
 

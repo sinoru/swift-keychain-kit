@@ -15,8 +15,8 @@ internal import Security
 extension Attributes {
     /// `kSecAttrLabel`: the user-visible label.
     public var label: String? {
-        get { value(Keys.label, as: \.string) }
-        set { setValue(newValue.map(SecValue.string), for: Keys.label) }
+        get { storage[Keys.label]?.string }
+        set { storage[Keys.label] = newValue.map(SecValue.string) }
     }
 
     /// `kSecAttrAccessGroup`: the single access group the item belongs to.
@@ -24,8 +24,8 @@ extension Attributes {
     /// Omit it to use the app's default group. On macOS it applies only to the data
     /// protection keychain.
     public var accessGroup: AccessGroup? {
-        get { value(Keys.accessGroup, as: { $0.constant() }) }
-        set { setValue(newValue.map { SecValue(constant: $0) }, for: Keys.accessGroup) }
+        get { storage[Keys.accessGroup]?.constant() }
+        set { storage[Keys.accessGroup] = newValue.map { SecValue(constant: $0) } }
     }
 
     /// `kSecAttrSynchronizable`: whether the item syncs through iCloud Keychain.
@@ -33,18 +33,18 @@ extension Attributes {
     /// Synchronizable items cannot use a `ThisDeviceOnly` accessibility. In a `Query`, the
     /// `synchronizable` property of the query takes precedence over this attribute.
     public var synchronizable: Bool? {
-        get { value(Keys.synchronizable, as: \.bool) }
-        set { setValue(newValue.map(SecValue.bool), for: Keys.synchronizable) }
+        get { storage[Keys.synchronizable]?.bool }
+        set { storage[Keys.synchronizable] = newValue.map(SecValue.bool) }
     }
 
     /// `kSecAttrCreationDate`: when the item was added. Set by the framework.
     public var creationDate: Date? {
-        value(Keys.creationDate, as: \.date)
+        storage[Keys.creationDate]?.date
     }
 
     /// `kSecAttrModificationDate`: when the item was last updated. Set by the framework.
     public var modificationDate: Date? {
-        value(Keys.modificationDate, as: \.date)
+        storage[Keys.modificationDate]?.date
     }
 }
 

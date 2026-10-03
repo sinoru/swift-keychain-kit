@@ -60,6 +60,15 @@ package struct SecObject: Hashable, @unchecked Sendable {
     package func hash(into hasher: inout Hasher) {
         hasher.combine(ObjectIdentifier(reference))
     }
+
+    /// Whether Core Foundation considers the two references equal (`CFEqual`), which holds for
+    /// distinct objects with the same contents.
+    ///
+    /// Kept apart from `==` because `CFHash` does not follow it for every type: two equal
+    /// `SecAccessControl` objects hash differently (measured on macOS 26).
+    func isEquivalent(to other: SecObject) -> Bool {
+        CFEqual(reference, other.reference)
+    }
 }
 
 // MARK: - Core Foundation conversion
@@ -136,7 +145,8 @@ extension SecValue {
 }
 
 extension SecDictionary {
-    /// Converts a bridged dictionary, dropping entries whose keys are not strings.
+    /// Converts a bridged dictionary. A dictionary with a non-string key never gets here: the
+    /// cast to `[String: Any]` fails as a whole and the value is carried as an `object`.
     init(cf dictionary: [String: Any]) {
         self = dictionary.mapValues { SecValue(cf: $0 as AnyObject) }
     }
