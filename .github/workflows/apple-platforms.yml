@@ -14,6 +14,7 @@ on:
     paths: &paths
       - Sources/**
       - Tests/**
+      - Xcode/**
       - Package.swift
       - .github/workflows/apple-platforms.yml
   pull_request:
@@ -47,6 +48,13 @@ jobs:
       # directly (macOS, Mac Catalyst) or by simulator runtime, resolved below
       # against whatever device the image carries so a renamed device does not
       # rot the matrix.
+      #
+      # A `hosted` row runs the tests from Xcode/KeychainKit.xcodeproj, inside
+      # a host app, instead of from the package. The data protection keychain
+      # refuses a test bundle that runs in the bare xctest runner, so only a
+      # hosted run reaches it; the suites that need it skip themselves
+      # everywhere else. The host app builds for iOS and visionOS, which is why
+      # the tvOS and watchOS simulators stay with the package.
       matrix:
         xcode:
           - name: "Swift 6.2.4"
@@ -71,6 +79,7 @@ jobs:
             destination: "generic/platform=iOS Simulator"
             simulator_runtime: iOS
             simulator_sdk: iphonesimulator
+            hosted: true
           - name: "tvOS"
             destination: "generic/platform=tvOS"
           - name: "tvOS Simulator"
@@ -90,6 +99,7 @@ jobs:
             destination: "generic/platform=visionOS Simulator"
             simulator_runtime: xrOS
             simulator_sdk: xrsimulator
+            hosted: true
     steps:
       - uses: actions/checkout@v7
       - run: xcodebuild -version
@@ -106,10 +116,23 @@ jobs:
             -configuration Release \
             -derivedDataPath "$RUNNER_TEMP/DerivedData"
 
+      # What builds and runs the tests: the package's own scheme, or for a
+      # hosted row the project's. A simulator build needs neither a team nor a
+      # certificate, so the project's signing settings are overridden with an
+      # ad hoc identity; the runner has no account to satisfy them with.
+      - name: Choose the test scheme
+        run: |
+          if [ "${{ matrix.platform.hosted }}" = "true" ]; then
+            echo "TEST_SCHEME=-project Xcode/KeychainKit.xcodeproj -scheme KeychainKitTestApp DEVELOPMENT_TEAM= CODE_SIGN_IDENTITY=-" >> "$GITHUB_ENV"
+          else
+            echo "TEST_SCHEME=-scheme KeychainKit" >> "$GITHUB_ENV"
+          fi
+
+      # $TEST_SCHEME is left unquoted on purpose: it holds several arguments.
       - name: xcodebuild build-for-testing (Debug)
         run: |
           xcodebuild build-for-testing \
-            -scheme KeychainKit \
+            $TEST_SCHEME \
             -destination '${{ matrix.platform.destination }}' \
             -configuration Debug \
             -derivedDataPath "$RUNNER_TEMP/DerivedData"
@@ -132,14 +155,15 @@ jobs:
             echo "TEST_DESTINATION=${{ matrix.platform.test_destination }}" >> "$GITHUB_ENV"
           fi
 
-      # The integration suites create a temporary file-based keychain, which
-      # only macOS has; they are compiled out everywhere else, so the other
-      # rows run the pure request-building and parsing tests alone.
+      # Which integration suites run depends on the row. Those for the
+      # file-based keychain create a temporary one, which only macOS has. Those
+      # for the data protection keychain run in a hosted row. Every other row
+      # runs the pure request-building and parsing tests alone.
       - name: xcodebuild test-without-building (Debug)
         if: env.TEST_DESTINATION
         run: |
           xcodebuild test-without-building \
-            -scheme KeychainKit \
+            $TEST_SCHEME \
             -destination "$TEST_DESTINATION" \
             -configuration Debug \
             -derivedDataPath "$RUNNER_TEMP/DerivedData"
