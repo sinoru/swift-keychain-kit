@@ -29,7 +29,10 @@ import Testing
         #expect(attributes.keyClass == .private)
         #expect(attributes.keyType == .rsa)
         #expect(attributes.keySizeInBits == 2048)
-        #expect(attributes.isPermanent == false)
+        // `kSecAttrIsPermanent` is not checked: `SecKeyCopyAttributes` reports it as false for
+        // this key on macOS and as true on the other platforms, where the framework marks every
+        // software key permanent whether or not it is stored (measured in CI on the iOS, tvOS,
+        // watchOS, and visionOS simulators and Mac Catalyst).
     }
 
     @Test func generationReportsAnUnsupportedSize() {
