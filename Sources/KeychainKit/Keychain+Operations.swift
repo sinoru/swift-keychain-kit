@@ -38,8 +38,16 @@ extension Keychain {
     // MARK: Read
 
     /// The first matching item with its attributes and data, or `nil` when nothing matches.
-    public func first<Class>(matching query: Query<Class>) throws(KeychainError) -> Item<Class>? {
+    public func first<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> Item<Class>? {
         guard let value = try fetch(query, returning: [.attributes, .data], all: false) else {
+            return nil
+        }
+        return try Self.item(from: value)
+    }
+
+    /// The first matching item with its attributes and reference, or `nil` when nothing matches.
+    public func first<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> Item<Class>? {
+        guard let value = try fetch(query, returning: [.attributes, .reference], all: false) else {
             return nil
         }
         return try Self.item(from: value)
@@ -57,11 +65,19 @@ extension Keychain {
     }
 
     /// The data of the first matching item, or `nil` when nothing matches.
-    public func data<Class>(matching query: Query<Class>) throws(KeychainError) -> Data? {
+    public func data<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> Data? {
         guard let value = try fetch(query, returning: .data, all: false) else {
             return nil
         }
         return try Self.data(from: value)
+    }
+
+    /// The reference of the first matching item, or `nil` when nothing matches.
+    public func reference<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> Class.Reference? {
+        guard let value = try fetch(query, returning: .reference, all: false) else {
+            return nil
+        }
+        return try Self.reference(from: value)
     }
 
     /// The persistent reference of the first matching item, or `nil` when nothing matches.
@@ -80,7 +96,7 @@ extension Keychain {
     /// skips items requiring authentication or because the item was removed in between, is left
     /// out rather than returned without data. Use `allAttributes(matching:)` when the data is
     /// not needed.
-    public func all<Class>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
+    public func all<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
         guard case .array(let values)? = try fetch(query, returning: [.attributes, .persistentReference], all: true) else {
             return []
         }
@@ -96,6 +112,19 @@ extension Keychain {
         return items
     }
 
+    /// Every matching item with its attributes and reference, in one call.
+    public func all<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
+        guard case .array(let values)? = try fetch(query, returning: [.attributes, .reference], all: true) else {
+            return []
+        }
+        var items: [Item<Class>] = []
+        items.reserveCapacity(values.count)
+        for value in values {
+            items.append(try Self.item(from: value))
+        }
+        return items
+    }
+
     /// The attributes of every matching item, in one call.
     public func allAttributes<Class>(matching query: Query<Class>) throws(KeychainError) -> [Attributes<Class>] {
         guard case .array(let values)? = try fetch(query, returning: .attributes, all: true) else {
@@ -107,6 +136,19 @@ extension Keychain {
             attributes.append(try Self.attributes(from: value))
         }
         return attributes
+    }
+
+    /// The references of every matching item, in one call.
+    public func allReferences<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Class.Reference] {
+        guard case .array(let values)? = try fetch(query, returning: .reference, all: true) else {
+            return []
+        }
+        var references: [Class.Reference] = []
+        references.reserveCapacity(values.count)
+        for value in values {
+            references.append(try Self.reference(from: value))
+        }
+        return references
     }
 
     /// The persistent references of every matching item, in one call.
@@ -129,6 +171,12 @@ extension Keychain {
     /// Unlike the read operations this throws `itemNotFound` when nothing matches, because an
     /// update presumes the item exists. Changing a primary-key attribute to collide with another
     /// item fails with `duplicateItem`.
+    ///
+    /// A reference on `changes` is left out: an update cannot replace the key or certificate an
+    /// item is. That lets an item that was read be changed and passed back as is. The exception
+    /// is a key in the file-based keychain on macOS, which rejects most key attributes in an
+    /// update even when their values are unchanged; there, pass an item holding only the
+    /// attributes to change.
     public func update<Class>(matching query: Query<Class>, with changes: Item<Class>) throws(KeychainError) {
         try Self.secItemUpdate(dictionary(for: query), with: Self.updateDictionary(for: changes))
     }
@@ -175,6 +223,7 @@ extension Keychain {
         package static let data = ResultKeys(rawValue: 1 << 0)
         package static let attributes = ResultKeys(rawValue: 1 << 1)
         package static let persistentReference = ResultKeys(rawValue: 1 << 2)
+        package static let reference = ResultKeys(rawValue: 1 << 3)
     }
 
     #if canImport(LocalAuthentication) && !os(tvOS)
@@ -195,8 +244,8 @@ extension Keychain {
     package func addDictionary<Class>(for item: Item<Class>) -> SecDictionary {
         var dictionary = item.attributes.secDictionary
         dictionary[.itemClass] = .string(Class.secClass)
-        if let data = item.data {
-            dictionary[.valueData] = .data(data)
+        if let (key, value) = item.valueEntry {
+            dictionary[key] = value
         }
         applyDefaults(to: &dictionary, forAdding: true)
         dictionary[.returnPersistentRef] = .bool(true)
@@ -221,6 +270,9 @@ extension Keychain {
         if keys.contains(.persistentReference) {
             dictionary[.returnPersistentRef] = .bool(true)
         }
+        if keys.contains(.reference) {
+            dictionary[.returnRef] = .bool(true)
+        }
         if all {
             dictionary[.matchLimit] = .matchLimitAll
         }
@@ -230,11 +282,17 @@ extension Keychain {
     /// The dictionary for `SecItemUpdate` and `SecItemDelete`.
     ///
     /// Apple documents both as acting on every match by default, and the data protection
-    /// keychain does. The file-based keychain on macOS touches only the first match unless
-    /// `kSecMatchLimitAll` is given, so it is always given; the other implementation ignores it.
+    /// keychain does. It also rejects a `kSecMatchLimit` in these two calls with `errSecParam`,
+    /// for every item class (measured on the iOS 27 simulator with an entitled host app). The
+    /// file-based keychain on macOS is the opposite: it touches only the first match unless
+    /// `kSecMatchLimitAll` is given. So the limit is given there and nowhere else.
     package func dictionary<Class>(for query: Query<Class>) -> SecDictionary {
         var dictionary = baseDictionary(for: query)
-        dictionary[.matchLimit] = .matchLimitAll
+        #if os(macOS)
+        if case .fileBased = storage {
+            dictionary[.matchLimit] = .matchLimitAll
+        }
+        #endif
         return dictionary
     }
 
@@ -246,10 +304,14 @@ extension Keychain {
     }
 
     /// The second dictionary for `SecItemUpdate`: only what `changes` sets.
+    ///
+    /// Data is sent and a reference is not. The data protection keychain rejects `kSecValueRef`
+    /// here with `errSecNoSuchAttr` (measured on the iOS 27 simulator with an entitled host app),
+    /// and every item the read operations return for a key, certificate, or identity carries one.
     package static func updateDictionary<Class>(for changes: Item<Class>) -> SecDictionary {
         var attributes = changes.attributes.secDictionary
-        if let data = changes.data {
-            attributes[.valueData] = .data(data)
+        if case .data? = changes.value {
+            attributes[.valueData] = changes.value
         }
         return attributes
     }
@@ -311,11 +373,12 @@ extension Keychain {
 /// reported as `decodingFailed`.
 extension Keychain {
     package static func item<Class>(from value: SecValue) throws(KeychainError) -> Item<Class> {
-        guard case .dictionary(var dictionary) = value else {
+        guard case .dictionary(let dictionary) = value else {
             throw KeychainError(code: .decodingFailed)
         }
-        let data: Data? = if case .data(let data)? = dictionary.removeValue(forKey: .valueData) { data } else { nil }
-        return Item(attributes: Attributes(secDictionary: dictionary), data: data)
+        var item = Item<Class>(attributes: Attributes(secDictionary: dictionary))
+        item.value = dictionary[.valueData] ?? dictionary[.valueRef]
+        return item
     }
 
     package static func attributes<Class>(from value: SecValue) throws(KeychainError) -> Attributes<Class> {
@@ -341,15 +404,31 @@ extension Keychain {
         return data
     }
 
+    /// An object of another type than the class's reference wraps is a decoding failure.
+    package static func reference<Reference: ItemReference>(from value: SecValue) throws(KeychainError) -> Reference {
+        guard case .object(let object) = value, let reference = Reference(object.reference) else {
+            throw KeychainError(code: .decodingFailed)
+        }
+        return reference
+    }
+
     package static func persistentReference(from value: SecValue) throws(KeychainError) -> PersistentReference {
         PersistentReference(rawValue: try data(from: value))
     }
 
     /// `SecItemAdd` returns nothing unless asked; a missing reference is a decoding failure.
+    ///
+    /// The file-based keychain on macOS answers an add made through `kSecValueRef` with a
+    /// one-element array around the reference, where every other add returns the reference
+    /// itself (measured on macOS 26). Both shapes are accepted.
     package static func persistentReference(fromAdd value: SecValue?) throws(KeychainError) -> PersistentReference {
-        guard let value else {
+        switch value {
+        case .array(let values)? where values.count == 1:
+            try persistentReference(from: values[0])
+        case let value?:
+            try persistentReference(from: value)
+        case nil:
             throw KeychainError(code: .decodingFailed)
         }
-        return try persistentReference(from: value)
     }
 }

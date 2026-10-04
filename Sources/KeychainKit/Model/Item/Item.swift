@@ -6,25 +6,35 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
-public import Foundation
-
-/// A keychain item of one class: its attributes and, for password classes, its secret data.
+/// A keychain item of one class: its attributes and its value.
 ///
-/// Passed to `Keychain.add(_:)` to create an item and to `Keychain.update(matching:with:)` to
-/// describe the changes, and returned by the read operations. Every attribute of `attributes`
-/// is reachable directly on the item, so `item.service` and `item.attributes.service` are the
-/// same thing.
+/// The value is secret data for the password classes (`data`) and a framework object for keys,
+/// certificates, and identities (`reference`); each is declared only for the classes it applies
+/// to. An item is passed to `Keychain.add(_:)` to create an item and to
+/// `Keychain.update(matching:with:)` to describe the changes, and returned by the read
+/// operations. Every attribute of `attributes` is reachable directly on the item, so
+/// `item.service` and `item.attributes.service` are the same thing.
 public struct Item<Class: ItemClass>: Hashable, Sendable {
-    /// Everything about the item except its secret.
+    /// Everything about the item except its value.
     public var attributes: Attributes<Class>
 
-    /// The secret (`kSecValueData`). `nil` on an item built by the caller without one; the read
-    /// operations that return items always fill it in.
-    public var data: Data?
+    /// The value as it travels in a SecItem dictionary: `data` under `kSecValueData`, an
+    /// `object` under `kSecValueRef`.
+    package var value: SecValue?
 
-    /// An item with the given attributes and secret.
-    public init(attributes: Attributes<Class> = Attributes(), data: Data? = nil) {
+    /// The entry the value occupies in a SecItem dictionary.
+    package var valueEntry: (key: SecItemKey, value: SecValue)? {
+        guard let value else {
+            return nil
+        }
+        if case .object = value {
+            return (.valueRef, value)
+        }
+        return (.valueData, value)
+    }
+
+    /// An item with the given attributes and no value.
+    public init(attributes: Attributes<Class> = Attributes()) {
         self.attributes = attributes
-        self.data = data
     }
 }

@@ -68,6 +68,38 @@ extension SecItemKey {
     package static let internetProtocol = SecItemKey(kSecAttrProtocol)
     package static let authenticationType = SecItemKey(kSecAttrAuthenticationType)
     package static let port = SecItemKey(kSecAttrPort)
+
+    package static let keyClass = SecItemKey(kSecAttrKeyClass)
+    package static let keyType = SecItemKey(kSecAttrKeyType)
+    package static let keySizeInBits = SecItemKey(kSecAttrKeySizeInBits)
+    package static let effectiveKeySize = SecItemKey(kSecAttrEffectiveKeySize)
+    package static let applicationLabel = SecItemKey(kSecAttrApplicationLabel)
+    package static let applicationTag = SecItemKey(kSecAttrApplicationTag)
+    package static let isPermanent = SecItemKey(kSecAttrIsPermanent)
+    package static let canEncrypt = SecItemKey(kSecAttrCanEncrypt)
+    package static let canDecrypt = SecItemKey(kSecAttrCanDecrypt)
+    package static let canDerive = SecItemKey(kSecAttrCanDerive)
+    package static let canSign = SecItemKey(kSecAttrCanSign)
+    package static let canVerify = SecItemKey(kSecAttrCanVerify)
+    package static let canWrap = SecItemKey(kSecAttrCanWrap)
+    package static let canUnwrap = SecItemKey(kSecAttrCanUnwrap)
+    package static let tokenID = SecItemKey(kSecAttrTokenID)
+
+    package static let certificateType = SecItemKey(kSecAttrCertificateType)
+    package static let certificateEncoding = SecItemKey(kSecAttrCertificateEncoding)
+    package static let subject = SecItemKey(kSecAttrSubject)
+    package static let issuer = SecItemKey(kSecAttrIssuer)
+    package static let serialNumber = SecItemKey(kSecAttrSerialNumber)
+    package static let subjectKeyID = SecItemKey(kSecAttrSubjectKeyID)
+    package static let publicKeyHash = SecItemKey(kSecAttrPublicKeyHash)
+}
+
+// MARK: - Key generation and operations
+
+extension SecItemKey {
+    package static let privateKeyAttrs = SecItemKey(kSecPrivateKeyAttrs)
+    package static let keyExchangeRequestedSize = SecItemKey(SecKeyKeyExchangeParameter.requestedSize.rawValue)
+    package static let keyExchangeSharedInfo = SecItemKey(SecKeyKeyExchangeParameter.sharedInfo.rawValue)
 }
 
 // MARK: - Search and call options
@@ -75,6 +107,7 @@ extension SecItemKey {
 extension SecItemKey {
     package static let returnData = SecItemKey(kSecReturnData)
     package static let returnAttributes = SecItemKey(kSecReturnAttributes)
+    package static let returnRef = SecItemKey(kSecReturnRef)
     package static let returnPersistentRef = SecItemKey(kSecReturnPersistentRef)
     package static let matchLimit = SecItemKey(kSecMatchLimit)
     package static let useDataProtectionKeychain = SecItemKey(kSecUseDataProtectionKeychain)

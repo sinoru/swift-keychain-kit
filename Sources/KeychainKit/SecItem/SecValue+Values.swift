@@ -68,6 +68,28 @@ extension SecValue {
     package init<Constant: RawRepresentable>(constant: Constant) where Constant.RawValue == String {
         self = .string(constant.rawValue)
     }
+
+    /// A `kSec*` constant whose raw string is a number, such as `kSecAttrKeyClassPrivate` (`"1"`)
+    /// and `kSecAttrKeyTypeECSECPrimeRandom` (`"73"`).
+    ///
+    /// `SecKeyCopyAttributes` and the file-based keychain return these as the `CFString`
+    /// constants (measured on macOS 26), while the data protection keychain returns a `CFNumber`
+    /// (measured on the iOS 27 simulator with an entitled host app). Both forms are accepted.
+    package func numericConstant<Constant: RawRepresentable>() -> Constant? where Constant.RawValue == String {
+        switch self {
+        case .string(let value):
+            Constant(rawValue: value)
+        case .integer(let value):
+            Constant(rawValue: String(value))
+        default:
+            nil
+        }
+    }
+
+    /// `integer` narrowed to `UInt32`, for the certificate type and encoding.
+    package var uint32: UInt32? {
+        integer.flatMap { UInt32(exactly: $0) }
+    }
 }
 
 /// The `kSec*` constants that appear as values rather than keys.

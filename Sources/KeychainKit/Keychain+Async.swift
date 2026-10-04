@@ -40,9 +40,16 @@ extension Keychain {
     }
     #endif
 
-    /// The asynchronous form of ``first(matching:)``.
+    /// The asynchronous form of ``first(matching:)`` for the password classes.
     @concurrent
-    public func first<Class>(matching query: Query<Class>) async throws(KeychainError) -> Item<Class>? {
+    public func first<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Item<Class>? {
+        let synchronous: (Query<Class>) throws(KeychainError) -> Item<Class>? = first(matching:)
+        return try synchronous(query)
+    }
+
+    /// The asynchronous form of ``first(matching:)`` for keys, certificates, and identities.
+    @concurrent
+    public func first<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Item<Class>? {
         let synchronous: (Query<Class>) throws(KeychainError) -> Item<Class>? = first(matching:)
         return try synchronous(query)
     }
@@ -56,8 +63,15 @@ extension Keychain {
 
     /// The asynchronous form of ``data(matching:)``.
     @concurrent
-    public func data<Class>(matching query: Query<Class>) async throws(KeychainError) -> Data? {
+    public func data<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Data? {
         let synchronous: (Query<Class>) throws(KeychainError) -> Data? = data(matching:)
+        return try synchronous(query)
+    }
+
+    /// The asynchronous form of ``reference(matching:)``.
+    @concurrent
+    public func reference<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Class.Reference? {
+        let synchronous: (Query<Class>) throws(KeychainError) -> Class.Reference? = reference(matching:)
         return try synchronous(query)
     }
 
@@ -68,9 +82,16 @@ extension Keychain {
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``all(matching:)``.
+    /// The asynchronous form of ``all(matching:)`` for the password classes.
     @concurrent
-    public func all<Class>(matching query: Query<Class>) async throws(KeychainError) -> [Item<Class>] {
+    public func all<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Item<Class>] {
+        let synchronous: (Query<Class>) throws(KeychainError) -> [Item<Class>] = all(matching:)
+        return try synchronous(query)
+    }
+
+    /// The asynchronous form of ``all(matching:)`` for keys, certificates, and identities.
+    @concurrent
+    public func all<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Item<Class>] {
         let synchronous: (Query<Class>) throws(KeychainError) -> [Item<Class>] = all(matching:)
         return try synchronous(query)
     }
@@ -82,12 +103,71 @@ extension Keychain {
         return try synchronous(query)
     }
 
+    /// The asynchronous form of ``allReferences(matching:)``.
+    @concurrent
+    public func allReferences<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Class.Reference] {
+        let synchronous: (Query<Class>) throws(KeychainError) -> [Class.Reference] = allReferences(matching:)
+        return try synchronous(query)
+    }
+
     /// The asynchronous form of ``allPersistentReferences(matching:)``.
     @concurrent
     public func allPersistentReferences<Class>(matching query: Query<Class>) async throws(KeychainError) -> [PersistentReference] {
         let synchronous: (Query<Class>) throws(KeychainError) -> [PersistentReference] = allPersistentReferences(matching:)
         return try synchronous(query)
     }
+
+    #if canImport(LocalAuthentication) && !os(tvOS)
+    /// The asynchronous form of ``generateKey(_:sizeInBits:attributes:authenticationContext:)``.
+    @concurrent
+    public func generateKey(
+        _ keyType: KeyType,
+        sizeInBits: Int,
+        attributes: Attributes<CryptographicKey> = Attributes(),
+        authenticationContext: AuthenticationContext? = nil,
+    ) async throws(KeychainError) -> KeyReference {
+        let synchronous: (KeyType, Int, Attributes<CryptographicKey>, AuthenticationContext?) throws(KeychainError) -> KeyReference = generateKey(_:sizeInBits:attributes:authenticationContext:)
+        return try synchronous(keyType, sizeInBits, attributes, authenticationContext)
+    }
+
+    /// The asynchronous form of ``generateSecureEnclaveKey(applicationTag:label:accessGroup:accessibility:constraints:authenticationContext:)``.
+    @concurrent
+    public func generateSecureEnclaveKey(
+        applicationTag: Data? = nil,
+        label: String? = nil,
+        accessGroup: AccessGroup? = nil,
+        accessibility: Accessibility = .whenUnlockedThisDeviceOnly,
+        constraints: AccessControl.Flags = [],
+        authenticationContext: AuthenticationContext? = nil,
+    ) async throws(KeychainError) -> KeyReference {
+        let synchronous: (Data?, String?, AccessGroup?, Accessibility, AccessControl.Flags, AuthenticationContext?) throws(KeychainError) -> KeyReference = generateSecureEnclaveKey(applicationTag:label:accessGroup:accessibility:constraints:authenticationContext:)
+        return try synchronous(applicationTag, label, accessGroup, accessibility, constraints, authenticationContext)
+    }
+    #else
+    /// The asynchronous form of ``generateKey(_:sizeInBits:attributes:)``.
+    @concurrent
+    public func generateKey(
+        _ keyType: KeyType,
+        sizeInBits: Int,
+        attributes: Attributes<CryptographicKey> = Attributes(),
+    ) async throws(KeychainError) -> KeyReference {
+        let synchronous: (KeyType, Int, Attributes<CryptographicKey>) throws(KeychainError) -> KeyReference = generateKey(_:sizeInBits:attributes:)
+        return try synchronous(keyType, sizeInBits, attributes)
+    }
+
+    /// The asynchronous form of ``generateSecureEnclaveKey(applicationTag:label:accessGroup:accessibility:constraints:)``.
+    @concurrent
+    public func generateSecureEnclaveKey(
+        applicationTag: Data? = nil,
+        label: String? = nil,
+        accessGroup: AccessGroup? = nil,
+        accessibility: Accessibility = .whenUnlockedThisDeviceOnly,
+        constraints: AccessControl.Flags = [],
+    ) async throws(KeychainError) -> KeyReference {
+        let synchronous: (Data?, String?, AccessGroup?, Accessibility, AccessControl.Flags) throws(KeychainError) -> KeyReference = generateSecureEnclaveKey(applicationTag:label:accessGroup:accessibility:constraints:)
+        return try synchronous(applicationTag, label, accessGroup, accessibility, constraints)
+    }
+    #endif
 
     /// The asynchronous form of ``update(matching:with:)``.
     @concurrent

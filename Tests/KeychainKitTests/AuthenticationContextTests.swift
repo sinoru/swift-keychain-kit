@@ -40,6 +40,28 @@ import Testing
         #expect(keychain.addDictionary(for: item, authenticationContext: nil)[SecItemKey(kSecUseAuthenticationContext)] == nil)
     }
 
+    /// The context sits at the top level of the generation request, not among the stored key's
+    /// attributes.
+    @Test func keyGenerationCarriesTheContext() throws {
+        let context = LAContext()
+        let keychain = Keychain()
+        let attributes = try Keychain.secureEnclaveKeyAttributes(
+            applicationTag: nil, label: nil, accessGroup: nil, accessibility: .whenUnlockedThisDeviceOnly, constraints: .applicationPassword,
+        )
+        let dictionary = keychain.generationDictionary(
+            for: .ecSECPrimeRandom, sizeInBits: 256, attributes: attributes, authenticationContext: AuthenticationContext(context),
+        )
+        #expect(isSameContext(dictionary[SecItemKey(kSecUseAuthenticationContext)], as: context))
+        guard case .dictionary(let privateKey)? = dictionary[SecItemKey(kSecPrivateKeyAttrs)] else {
+            Issue.record("no private key attributes")
+            return
+        }
+        #expect(privateKey[SecItemKey(kSecUseAuthenticationContext)] == nil)
+
+        let without = keychain.generationDictionary(for: .ecSECPrimeRandom, sizeInBits: 256, attributes: attributes, authenticationContext: nil)
+        #expect(without[SecItemKey(kSecUseAuthenticationContext)] == nil)
+    }
+
     @Test func dataQueriesInheritTheContextAndTheSkipFlag() {
         let context = LAContext()
         var original = Query<GenericPassword>()

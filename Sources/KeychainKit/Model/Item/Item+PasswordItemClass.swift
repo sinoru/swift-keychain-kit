@@ -6,7 +6,7 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
-internal import Foundation
+public import Foundation
 
 extension Item where Class: PasswordItemClass {
     /// Forwards to `Attributes/account`.
@@ -53,6 +53,19 @@ extension Item where Class: PasswordItemClass {
 }
 
 extension Item where Class: PasswordItemClass {
+    /// The secret (`kSecValueData`). `nil` on an item built by the caller without one; the read
+    /// operations that return items always fill it in.
+    public var data: Data? {
+        get { value?.data }
+        set { value = newValue.map(SecValue.data) }
+    }
+
+    /// An item with the given attributes and secret.
+    public init(attributes: Attributes<Class> = Attributes(), data: Data?) {
+        self.init(attributes: attributes)
+        self.data = data
+    }
+
     /// The secret decoded as UTF-8.
     ///
     /// `nil` when there is no data or the data is not valid UTF-8. Setting it replaces `data`;

@@ -29,3 +29,36 @@ public enum GenericPassword: ItemClass {
 public enum InternetPassword: ItemClass {
     public static let secClass = kSecClassInternetPassword as String
 }
+
+/// An item class whose value is a framework object rather than secret data: a key, a
+/// certificate, or an identity.
+public protocol ReferenceItemClass: ItemClass {
+    /// The wrapper for the framework object items of this class are.
+    associatedtype Reference: ItemReference
+}
+
+/// `kSecClassKey`
+public enum CryptographicKey: ReferenceItemClass {
+    public typealias Reference = KeyReference
+
+    public static let secClass = kSecClassKey as String
+}
+
+/// `kSecClassCertificate`
+public enum Certificate: ReferenceItemClass {
+    public typealias Reference = CertificateReference
+
+    public static let secClass = kSecClassCertificate as String
+}
+
+/// `kSecClassIdentity`
+///
+/// An identity is a certificate paired with its private key. It is not stored as an item of its
+/// own: the keychain reports one wherever it holds both halves. The data protection keychain
+/// reports the attributes of both; the file-based keychain on macOS reports only the
+/// certificate's (measured on the iOS 27 simulator and macOS 26).
+public enum Identity: ReferenceItemClass {
+    public typealias Reference = IdentityReference
+
+    public static let secClass = kSecClassIdentity as String
+}

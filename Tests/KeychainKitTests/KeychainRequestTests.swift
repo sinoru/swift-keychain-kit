@@ -106,10 +106,17 @@ import KeychainKitTestSupport
         #expect(keychain.dictionary(for: skipping)[SecItemKey(kSecUseAuthenticationUI)] == nil)
     }
 
-    @Test func updateAndDeleteAskForEveryMatch() {
+    /// The data protection keychain rejects a match limit in an update or delete, while the
+    /// file-based keychain needs one to act on more than the first match.
+    @Test func updateAndDeleteAskForEveryMatchOnlyOnTheFileBasedKeychain() {
         let dictionary = Keychain().dictionary(for: query)
-        #expect(dictionary[SecItemKey(kSecMatchLimit)] == .string(kSecMatchLimitAll as String))
+        #expect(dictionary[SecItemKey(kSecMatchLimit)] == nil)
         #expect(dictionary[SecItemKey(kSecAttrService)] == .string("service"))
+
+        #if os(macOS)
+        let fileBased = Keychain(storage: .fileBased()).dictionary(for: query)
+        #expect(fileBased[SecItemKey(kSecMatchLimit)] == .string(kSecMatchLimitAll as String))
+        #endif
     }
 
     @Test func dataQueryInheritsTheSkipFlag() {
