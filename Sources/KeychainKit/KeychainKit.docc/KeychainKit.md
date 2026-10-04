@@ -9,7 +9,9 @@ Keychain Services is a C API driven by `CFDictionary`s of `kSec*` keys. Keychain
 replaces those dictionaries with Swift types: an ``Item`` of one ``ItemClass`` whose
 ``Attributes`` are typed properties declared only for the classes they apply to, a
 ``Query`` that describes what to find, and a ``Keychain`` whose operations return `nil`
-or an empty array when nothing matches and throw a ``KeychainError`` otherwise.
+or an empty array when nothing matches and throw a ``KeychainError`` otherwise. Passwords,
+keys, certificates, and identities are all items; keys also sign, encrypt, and exchange
+secrets through ``KeyReference``.
 
 ```swift
 let keychain = Keychain()
@@ -33,6 +35,7 @@ let item = try await keychain.first(matching: Query(service: "com.example.app", 
 ### Essentials
 
 - <doc:GettingStarted>
+- <doc:KeysCertificatesAndIdentities>
 - ``Keychain``
 - ``KeychainError``
 
@@ -41,12 +44,38 @@ let item = try await keychain.first(matching: Query(service: "com.example.app", 
 - ``Item``
 - ``Attributes``
 - ``ItemClass``
+- ``PersistentReference``
+
+### Passwords
+
 - ``PasswordItemClass``
 - ``GenericPassword``
 - ``InternetPassword``
 - ``InternetProtocol``
 - ``AuthenticationType``
-- ``PersistentReference``
+
+### Keys, certificates, and identities
+
+- ``ReferenceItemClass``
+- ``KeyItemClass``
+- ``CertificateItemClass``
+- ``CryptographicKey``
+- ``Certificate``
+- ``Identity``
+- ``ItemReference``
+- ``KeyReference``
+- ``CertificateReference``
+- ``IdentityReference``
+- ``KeyClass``
+- ``KeyType``
+- ``TokenID``
+- ``CertificateType``
+- ``CertificateEncoding``
+
+### Key operations
+
+- ``KeyAlgorithm``
+- ``KeyOperation``
 
 ### Finding items
 

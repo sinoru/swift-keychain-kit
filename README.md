@@ -57,8 +57,8 @@ dependencies: [
 
 ### Items, attributes, and queries
 
-An `Item` belongs to one item class and carries `Attributes` plus optional secret `Data`.
-Each attribute is a typed property that exists only for the classes it is valid for:
+An `Item` belongs to one item class and carries `Attributes` plus a value: secret `Data` for
+a password, a reference for a key, certificate, or identity. Each attribute is a typed property that exists only for the classes it is valid for:
 `service` on a generic password, `server` and `port` on an internet password, `label` and
 `accessGroup` on anything. Using one on the wrong class does not compile.
 
@@ -83,12 +83,59 @@ try keychain.update(matching: query, with: changes)   // throws .itemNotFound
 try keychain.delete(matching: query)                  // idempotent
 ```
 
+### Keys, certificates, and identities
+
+A key is generated into the keychain, found by its attributes, and used through
+`KeyReference`. Only the private key is stored; the public key is derived from it.
+
+```swift
+var attributes = Attributes<CryptographicKey>()
+attributes.applicationTag = Data("com.example.keys.signing".utf8)
+
+let key = try keychain.generateKey(.ecSECPrimeRandom, sizeInBits: 256, attributes: attributes)
+
+let signature = try key.signature(for: message, using: .ecdsaSignatureMessageX962SHA256)
+try key.publicKey?.isValidSignature(signature, for: message, using: .ecdsaSignatureMessageX962SHA256)   // Bool
+
+var query = Query<CryptographicKey>()
+query.applicationTag = Data("com.example.keys.signing".utf8)
+try keychain.reference(matching: query)    // KeyReference?
+```
+
+A Secure Enclave key takes neither a type nor a size, because the Secure Enclave works
+only with 256-bit NIST P curve keys, and always carries the `privateKeyUsage` flag.
+
+```swift
+let enclaveKey = try keychain.generateSecureEnclaveKey(
+    applicationTag: Data("com.example.keys.enclave".utf8),
+    constraints: .biometryAny,
+)
+```
+
+Certificates are created from DER and stored by reference; an identity appears wherever
+the keychain holds a certificate and its private key.
+
+```swift
+if let certificate = CertificateReference(derRepresentation: der) {
+    try keychain.add(Item<Certificate>(reference: certificate))
+}
+
+if let identity = try keychain.reference(matching: Query<Identity>()) {
+    let privateKey = try identity.privateKey()
+    let publicKey = try identity.certificate().publicKey
+}
+```
+
+KeychainKit depends on nothing beyond the Security framework. A CryptoKit NIST key
+converts through its X9.63 representation, and a certificate through DER.
+
 ### Swift concurrency
 
 Every operation has an `async` overload, selected automatically in an asynchronous
 context. Keychain Services blocks the calling thread while it talks to `securityd`, so the
 overloads are `@concurrent` and run on the global executor rather than the caller's actor.
-`Keychain` itself is `Sendable`.
+The same goes for the key operations that can wait on the daemon or the user. `Keychain`
+and the references are `Sendable`.
 
 ```swift
 let item = try await keychain.first(matching: query)
@@ -139,8 +186,11 @@ The full guide lives in the DocC catalog under `Sources/KeychainKit/KeychainKit.
 Tests never touch the user's keychain. The request-building and result-parsing halves of
 every operation are pure functions and are tested directly. The calls into the framework are
 tested on macOS against a temporary file-based keychain created in the temporary directory
-and deleted afterwards. Data-protection behaviour such as access groups and biometrics
-requires a signed host and is outside `swift test`.
+and deleted afterwards. Key operations run on keys that are never stored. Data-protection
+behaviour such as access groups and biometrics requires a signed host and is outside
+`swift test`; what the sources say about it was measured in a simulator through an
+entitled host app, and the Secure Enclave and application passwords, which the simulator
+does not enforce, still need a device.
 
 ```shell
 swift test
@@ -149,8 +199,8 @@ swift test --sanitize=thread
 
 ## Roadmap
 
-Key, certificate, and identity items, `SecKey` operations, and the Secure Enclave are
-tracked in [#1](https://github.com/sinoru/swift-keychain-kit/issues/1).
+Open work is tracked in the [issues](https://github.com/sinoru/swift-keychain-kit/issues).
+Trust evaluation (`SecTrust`), certificate parsing, and passkeys are out of scope.
 
 ## License
 

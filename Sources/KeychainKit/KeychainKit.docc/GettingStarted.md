@@ -8,6 +8,9 @@ A ``Keychain`` holds only configuration, so create one where convenient and shar
 freely; it is `Sendable`. With no arguments it targets the data protection keychain,
 which is the only keychain on iOS and relatives and the recommended one on macOS.
 
+This article covers passwords. Keys, certificates, and identities use the same operations
+and are described in <doc:KeysCertificatesAndIdentities>.
+
 ```swift
 import KeychainKit
 
@@ -122,7 +125,8 @@ let daemonKeychain = Keychain(storage: .fileBased())
 ```
 
 Access groups, accessibility levels, and access control objects do not apply to the
-file-based keychain.
+file-based keychain. It also treats keys and identities differently; see
+<doc:KeysCertificatesAndIdentities>.
 
 ### Handle errors
 
