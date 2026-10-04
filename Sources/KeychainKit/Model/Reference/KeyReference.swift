@@ -21,7 +21,7 @@ public struct KeyReference: ItemReference, @unchecked Sendable {
     }
 
     public init?(_ object: AnyObject) {
-        guard CFGetTypeID(object) == SecKeyGetTypeID() else {
+        guard Self.typeID(of: object) == SecKeyGetTypeID() else {
             return nil
         }
         // The type ID has established the type, so the forced cast cannot go wrong.

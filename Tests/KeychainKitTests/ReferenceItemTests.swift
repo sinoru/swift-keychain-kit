@@ -30,6 +30,21 @@ import Testing
         #expect(KeyReference("string" as CFString) == nil)
     }
 
+#if os(macOS)
+    /// A proxy answers what it is asked by forwarding it, and one that will not forward a message
+    /// raises instead. Core Foundation asks an object that is not its own for a type ID with a
+    /// message, so a proxy has to be turned away before that question rather than by it. Anything
+    /// short of that does not fail this test; it ends the process. `NSProtocolChecker` is in the
+    /// macOS SDK only.
+    @Test func referenceTurnsAwayAProxyWithoutSendingItAMessage() {
+        let proxy = NSProtocolChecker(target: NSObject(), protocol: (any NSObjectProtocol).self)
+
+        #expect(KeyReference(proxy) == nil)
+        #expect(CertificateReference(proxy) == nil)
+        #expect(IdentityReference(proxy) == nil)
+    }
+#endif
+
     /// The reason the wrappers check the type ID: a cast to a Core Foundation type succeeds for
     /// an object of any other Core Foundation type.
     @Test func castToACoreFoundationTypeDoesNotDiscriminate() throws {
