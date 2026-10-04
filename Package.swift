@@ -40,15 +40,9 @@ let package = Package(
             name: "KeychainKit",
             swiftSettings: commonSwiftSettings,
         ),
-        // Temporary-keychain fixtures for the integration tests. Not part of any product.
-        .target(
-            name: "KeychainKitTestSupport",
-            dependencies: ["KeychainKit"],
-            swiftSettings: commonSwiftSettings,
-        ),
         .testTarget(
             name: "KeychainKitTests",
-            dependencies: ["KeychainKit", "KeychainKitTestSupport"],
+            dependencies: ["KeychainKit"],
             swiftSettings: commonSwiftSettings,
         ),
     ]

@@ -12,7 +12,6 @@ import Security
 import Testing
 
 import KeychainKit
-import KeychainKitTestSupport
 
 /// Stores keys, certificates, and identities in a temporary file-based keychain through the
 /// public `Keychain` API.

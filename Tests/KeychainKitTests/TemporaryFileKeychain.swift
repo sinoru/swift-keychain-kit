@@ -1,15 +1,16 @@
 //
 //  TemporaryFileKeychain.swift
-//  KeychainKitTestSupport
+//  KeychainKitTests
 //
 //  Copyright (c) 2026 Kang Jaehong
 //  SPDX-License-Identifier: Apache-2.0
 //
 
 #if os(macOS)
-internal import Foundation
-public import KeychainKit
-internal import Security
+import Foundation
+import Security
+
+@testable import KeychainKit
 
 /// A file-based keychain created in a temporary directory for the lifetime of a test.
 ///
@@ -24,16 +25,16 @@ internal import Security
 ///
 /// `SecKeychain` is an immutable handle to the keychain file, which is why passing it between
 /// threads is safe and the conformance is unchecked.
-public final class TemporaryFileKeychain: @unchecked Sendable {
+final class TemporaryFileKeychain: @unchecked Sendable {
     /// Where the keychain file lives until `tearDown()`.
-    public let path: String
+    let path: String
 
     private let keychain: SecKeychain
 
     #if compiler(>=6.4)
     @diagnose(DeprecatedDeclaration, as: ignored)
     #endif
-    public init() throws(KeychainError) {
+    init() throws(KeychainError) {
         try KeychainError.check(SecKeychainSetUserInteractionAllowed(false))
 
         let url = FileManager.default.temporaryDirectory
@@ -53,17 +54,17 @@ public final class TemporaryFileKeychain: @unchecked Sendable {
     }
 
     /// The storage handle for a `Keychain` that should target this keychain.
-    public var fileKeychain: FileKeychain {
+    var fileKeychain: FileKeychain {
         FileKeychain(reference: keychain)
     }
 
     /// The `kSecUseKeychain` entry that directs `SecItemAdd` at this keychain.
-    package var useKeychainEntry: SecDictionary {
+    var useKeychainEntry: SecDictionary {
         [.useKeychain: .object(SecObject(keychain))]
     }
 
     /// The `kSecMatchSearchList` entry that confines a query, update, or delete to this keychain.
-    package var searchListEntry: SecDictionary {
+    var searchListEntry: SecDictionary {
         [.matchSearchList: .array([.object(SecObject(keychain))])]
     }
 
@@ -71,7 +72,7 @@ public final class TemporaryFileKeychain: @unchecked Sendable {
     #if compiler(>=6.4)
     @diagnose(DeprecatedDeclaration, as: ignored)
     #endif
-    public func tearDown() throws(KeychainError) {
+    func tearDown() throws(KeychainError) {
         try KeychainError.check(SecKeychainDelete(keychain))
     }
 }

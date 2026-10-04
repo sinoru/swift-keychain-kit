@@ -12,7 +12,6 @@ import Security
 import Testing
 
 @testable import KeychainKit
-import KeychainKitTestSupport
 
 /// Runs the raw SecItem calls against a temporary file-based keychain.
 ///

@@ -104,7 +104,7 @@ extension Keychain {
         items.reserveCapacity(values.count)
         for value in values {
             let (attributes, reference) = try Self.attributesAndReference(from: value) as (Attributes<Class>, PersistentReference)
-            guard let data = try data(matching: dataQuery(for: attributes, reference: reference, inheriting: query)) else {
+            guard let data = try data(matching: dataQuery(for: reference, inheriting: query)) else {
                 continue
             }
             items.append(Item(attributes: attributes, data: data))
@@ -318,20 +318,18 @@ extension Keychain {
 
     /// The per-item query `all(matching:)` uses to fetch data by persistent reference.
     ///
-    /// It carries the item's own access group so that a search in a non-default group is not
-    /// redirected to the default, matches synchronizable items too, and inherits the original
-    /// query's authentication settings. Both are needed in the second step: reading attributes
-    /// does not require authentication, so the first call returns protected items even when
-    /// asked to skip them, and it is the data fetch that must skip or authenticate.
+    /// It matches synchronizable items too and inherits the original query's authentication
+    /// settings. Both are needed in the second step: reading attributes does not require
+    /// authentication, so the first call returns protected items even when asked to skip them,
+    /// and it is the data fetch that must skip or authenticate. It names no access group: the
+    /// reference identifies the item whatever group it is in.
     package func dataQuery<Class>(
-        for attributes: Attributes<Class>,
-        reference: PersistentReference,
+        for reference: PersistentReference,
         inheriting original: Query<Class>,
     ) -> Query<Class> {
         var query = Query<Class>()
         query.persistentReference = reference
         query.synchronizable = .any
-        query.accessGroup = attributes.accessGroup
         query.skipsItemsRequiringAuthentication = original.skipsItemsRequiringAuthentication
         #if canImport(LocalAuthentication) && !os(tvOS)
         query.authenticationContext = original.authenticationContext
@@ -347,6 +345,13 @@ extension Keychain {
         switch storage {
         case .dataProtection:
             dictionary[.useDataProtectionKeychain] = .bool(true)
+            // A persistent reference names one item whatever its group, and this keychain
+            // rejects an access group next to one with `errSecParam` (measured on the iOS 27
+            // simulator in a host app). So neither the default group nor one the query names
+            // goes along with a reference.
+            if dictionary[.valuePersistentRef] != nil {
+                dictionary[.accessGroup] = nil
+            }
         #if os(macOS)
         case .fileBased(let keychain):
             if let keychain {

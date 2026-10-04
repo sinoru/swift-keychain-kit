@@ -25,6 +25,10 @@ enum ReferenceFixtures {
         -----END EC PRIVATE KEY-----
         """
 
+    /// The fixture private key in ANSI X9.63 form: `04 || X || Y || K`. The data protection
+    /// keychain accepts a key made from it, which the file-based keychain does not.
+    static let privateKeyData = Data(base64Encoded: "BP+q+akZwjFG4qGc+7/4zSWEC1+k8r6yG77+aoVy9AgPySFeIqMiQjwL8f6gznTQcnaKst58Z801UCRUCPD+KVqUeY/x2TpmDgn2NWb2wy22JfzabaGAwcCJkCsQYQeBOA==")!
+
     /// The public half of the fixture key in ANSI X9.63 form: `04 || X || Y`.
     static let publicKeyData = Data(base64Encoded: "BP+q+akZwjFG4qGc+7/4zSWEC1+k8r6yG77+aoVy9AgPySFeIqMiQjwL8f6gznTQcnaKst58Z801UCRUCPD+KVo=")!
 

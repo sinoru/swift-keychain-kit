@@ -11,7 +11,6 @@ import Security
 import Testing
 
 @testable import KeychainKit
-import KeychainKitTestSupport
 
 /// Checks the dictionaries a `Keychain` builds for the framework, without calling it.
 @Suite struct KeychainRequestTests {
@@ -75,26 +74,27 @@ import KeychainKitTestSupport
         #expect(all[SecItemKey(kSecMatchLimit)] == .string(kSecMatchLimitAll as String))
     }
 
-    @Test func dataQueryCarriesReferenceGroupAndAnySynchronizable() {
+    /// The data protection keychain rejects an access group next to a persistent reference, so
+    /// neither the keychain's default group nor one named on the query is sent with one.
+    @Test func persistentReferenceIsSentWithoutAnAccessGroup() {
         let keychain = Keychain(accessGroup: AccessGroup(rawValue: "TEAM.default"))
-        var attributes = Attributes<GenericPassword>()
-        attributes.accessGroup = AccessGroup(rawValue: "TEAM.shared")
-        let dictionary = keychain.requestDictionary(
-            for: keychain.dataQuery(for: attributes, reference: PersistentReference(rawValue: Data([7])), inheriting: query),
-            returning: .data,
-            all: false,
-        )
-        #expect(dictionary[SecItemKey(kSecValuePersistentRef)] == .data(Data([7])))
-        #expect(dictionary[SecItemKey(kSecAttrAccessGroup)] == .string("TEAM.shared"))
-        #expect(dictionary[SecItemKey(kSecAttrSynchronizable)] == .string(kSecAttrSynchronizableAny as String))
-        #expect(dictionary[SecItemKey(kSecReturnData)] == .bool(true))
+        let reference = PersistentReference(rawValue: Data([7]))
 
-        let ungrouped = keychain.requestDictionary(
-            for: keychain.dataQuery(for: Attributes<GenericPassword>(), reference: PersistentReference(rawValue: Data([7])), inheriting: query),
-            returning: .data,
-            all: false,
-        )
-        #expect(ungrouped[SecItemKey(kSecAttrAccessGroup)] == .string("TEAM.default"))
+        let dataRequest = keychain.requestDictionary(for: keychain.dataQuery(for: reference, inheriting: query), returning: .data, all: false)
+        #expect(dataRequest[SecItemKey(kSecValuePersistentRef)] == .data(Data([7])))
+        #expect(dataRequest[SecItemKey(kSecAttrAccessGroup)] == nil)
+        #expect(dataRequest[SecItemKey(kSecAttrSynchronizable)] == .string(kSecAttrSynchronizableAny as String))
+        #expect(dataRequest[SecItemKey(kSecReturnData)] == .bool(true))
+
+        var named = Query<GenericPassword>()
+        named.persistentReference = reference
+        named.accessGroup = AccessGroup(rawValue: "TEAM.shared")
+        #expect(keychain.requestDictionary(for: named, returning: .data, all: false)[SecItemKey(kSecAttrAccessGroup)] == nil)
+        #expect(keychain.dictionary(for: named)[SecItemKey(kSecAttrAccessGroup)] == nil)
+
+        var unreferenced = Query<GenericPassword>()
+        unreferenced.accessGroup = AccessGroup(rawValue: "TEAM.shared")
+        #expect(keychain.dictionary(for: unreferenced)[SecItemKey(kSecAttrAccessGroup)] == .string("TEAM.shared"))
     }
 
     @Test func skipFlagReachesSearchesButNotMutations() {
@@ -124,8 +124,8 @@ import KeychainKitTestSupport
         var skipping = query
         skipping.skipsItemsRequiringAuthentication = true
         let reference = PersistentReference(rawValue: Data([7]))
-        #expect(keychain.dataQuery(for: Attributes(), reference: reference, inheriting: skipping).skipsItemsRequiringAuthentication)
-        #expect(!keychain.dataQuery(for: Attributes(), reference: reference, inheriting: query).skipsItemsRequiringAuthentication)
+        #expect(keychain.dataQuery(for: reference, inheriting: skipping).skipsItemsRequiringAuthentication)
+        #expect(!keychain.dataQuery(for: reference, inheriting: query).skipsItemsRequiringAuthentication)
     }
 
     @Test func updateSendsOnlyTheChanges() {

@@ -68,7 +68,7 @@ import Testing
         original.authenticationContext = AuthenticationContext(context)
         original.skipsItemsRequiringAuthentication = true
         let keychain = Keychain()
-        let dataQuery = keychain.dataQuery(for: Attributes(), reference: PersistentReference(rawValue: Data([1])), inheriting: original)
+        let dataQuery = keychain.dataQuery(for: PersistentReference(rawValue: Data([1])), inheriting: original)
         #expect(dataQuery.authenticationContext == AuthenticationContext(context))
         #expect(dataQuery.skipsItemsRequiringAuthentication)
         #expect(isSameContext(keychain.requestDictionary(for: dataQuery, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationContext)], as: context))

@@ -12,7 +12,6 @@ import Security
 import Testing
 
 import KeychainKit
-import KeychainKitTestSupport
 
 /// Runs the public `Keychain` API against the real framework and a temporary file-based keychain.
 ///
