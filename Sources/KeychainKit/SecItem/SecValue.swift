@@ -6,6 +6,7 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
+internal import CoreFoundationKit
 package import Foundation
 internal import Security
 
@@ -76,48 +77,48 @@ package struct SecObject: Hashable, @unchecked Sendable {
 extension SecValue {
     /// Classifies a CF object by its type ID.
     ///
-    /// The type ID check comes first because bridged casts are too permissive: a `CFBoolean`
-    /// also casts to `Int`, and a `CFNumber` also casts to `Bool`. Once the type ID has
-    /// established the class, each branch force-casts to that class and bridges from there. The
-    /// forced casts cannot fail, and they skip the dynamic cast a conditional cast to the Swift
-    /// type would run a second time, which measured as about a quarter of the conversion.
+    /// The type ID is what tells the object apart because bridged casts are too permissive: a
+    /// `CFBoolean` also casts to `Int`, and a `CFNumber` also casts to `Bool`.
+    /// `CoreFoundationValue` asks it once and hands each branch the object as the type it
+    /// established, which is bridged from there without the dynamic cast a conditional cast to
+    /// the Swift type would run.
     init(cf value: AnyObject) {
-        switch CFGetTypeID(value) {
-        case CFStringGetTypeID():
-            self = .string((value as! NSString) as String)
-        case CFDataGetTypeID():
-            self = .data((value as! NSData) as Data)
-        case CFBooleanGetTypeID():
-            self = .bool(value === kCFBooleanTrue)
-        case CFNumberGetTypeID():
+        switch CoreFoundationValue(unchecked: value) {
+        case .string(let string):
+            self = .string(string as String)
+        case .data(let data):
+            self = .data(data as Data)
+        case .boolean(let bool):
+            self = .bool(bool)
+        case .number(let number):
             // `NSNumber` bridges to `Int64` only when the value is exactly representable, so a
             // fraction or an integer beyond `Int64` is carried as an `object` rather than rounded.
             // `CFNumberGetValue` cannot stand in for this: it reports an unsigned value above
             // `Int64.max` as a successful conversion and hands back its bit pattern (measured on
             // macOS 26: `UInt64.max` reads as -1).
-            if let integer = (value as! NSNumber) as? Int64 {
+            if let integer = (number as NSNumber) as? Int64 {
                 self = .integer(integer)
             } else {
                 self = .object(SecObject(value))
             }
-        case CFDateGetTypeID():
-            self = .date((value as! NSDate) as Date)
-        case CFDictionaryGetTypeID():
-            if let dictionary = SecDictionary(cf: value as! NSDictionary) {
+        case .date(let date):
+            self = .date(date as Date)
+        case .dictionary(let dictionary):
+            if let dictionary = SecDictionary(cf: dictionary as NSDictionary) {
                 self = .dictionary(dictionary)
             } else {
                 self = .object(SecObject(value))
             }
-        case CFArrayGetTypeID():
-            let array = value as! NSArray
+        case .array(let array):
+            let array = array as NSArray
             var values: [SecValue] = []
             values.reserveCapacity(array.count)
             for index in 0..<array.count {
                 values.append(SecValue(cf: array.object(at: index) as AnyObject))
             }
             self = .array(values)
-        default:
-            self = .object(SecObject(value))
+        case .other(let object):
+            self = .object(SecObject(object))
         }
     }
 
@@ -149,13 +150,15 @@ extension SecDictionary {
     ///
     /// Walks the `NSDictionary` directly. Casting to `[String: Any]` first would build a Swift
     /// dictionary only for this one to be built from it. The enumeration is marked `unsafe` for
-    /// the block's stop pointer, which is never touched.
+    /// the block's stop pointer, which is written once, to end the walk at a key that is not a
+    /// string, and not kept.
     init?(cf dictionary: NSDictionary) {
         var result = SecDictionary(minimumCapacity: dictionary.count)
         var hasOnlyStringKeys = true
-        unsafe dictionary.enumerateKeysAndObjects { key, value, _ in
+        unsafe dictionary.enumerateKeysAndObjects { key, value, stop in
             guard let key = key as? NSString else {
                 hasOnlyStringKeys = false
+                unsafe stop.pointee = true
                 return
             }
             result[SecItemKey(rawValue: key as String)] = SecValue(cf: value as AnyObject)

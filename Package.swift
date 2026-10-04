@@ -35,9 +35,18 @@ let package = Package(
             targets: ["KeychainKit"]
         ),
     ],
+    dependencies: [
+        .package(
+            url: "https://github.com/sinoru/swift-core-foundation-kit.git",
+            from: "0.0.2"
+        ),
+    ],
     targets: [
         .target(
             name: "KeychainKit",
+            dependencies: [
+                .product(name: "CoreFoundationKit", package: "swift-core-foundation-kit"),
+            ],
             swiftSettings: commonSwiftSettings,
         ),
         .testTarget(

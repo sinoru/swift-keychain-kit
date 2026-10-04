@@ -6,6 +6,7 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
+internal import CoreFoundationKit
 internal import Foundation
 public import Security
 
@@ -21,7 +22,7 @@ public struct CertificateReference: ItemReference, @unchecked Sendable {
     }
 
     public init?(_ object: AnyObject) {
-        guard Self.typeID(of: object) == SecCertificateGetTypeID() else {
+        guard CoreFoundationValue.typeID(of: object) == SecCertificateGetTypeID() else {
             return nil
         }
         // The type ID has established the type, so the forced cast cannot go wrong.

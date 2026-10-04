@@ -6,12 +6,6 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
-internal import Foundation
-
-/// What `CFGetTypeID` sends an object that is not Core Foundation's own. No header declares it;
-/// Core Foundation's sources and the Swift runtime's are where it is written down.
-private let typeIDSelector = Selector(("_cfTypeID"))
-
 /// A reference to a keychain item that is a framework object: a key, a certificate, or an
 /// identity.
 ///
@@ -38,23 +32,11 @@ public protocol ItemReference: Hashable, Sendable {
     /// A cast cannot make this judgement. Core Foundation objects of unrelated types share one
     /// Objective-C class, so a cast to a Core Foundation type succeeds for any of them: casting a
     /// `SecAccessControl` or a `CFString` to `SecKey` yields a value (measured on macOS 26).
-    init?(_ object: AnyObject)
-}
-
-extension ItemReference {
-    /// The Core Foundation type ID of `object`, or `nil` when it cannot be asked for one.
     ///
-    /// `CFGetTypeID` answers for a Core Foundation object itself and sends every other one
-    /// `_cfTypeID`, which `NSObject` and Swift's own root class implement and `NSProxy` does not:
-    /// a proxy forwards it or raises, and an object that is not of the wrapped type would bring
-    /// the process down rather than read as `nil` (measured on macOS 26 with an
-    /// `NSProtocolChecker`). The class is asked through the runtime, which sends no message.
-    static func typeID(of object: AnyObject) -> CFTypeID? {
-        guard class_respondsToSelector(object_getClass(object), typeIDSelector) else {
-            return nil
-        }
-        return CFGetTypeID(object)
-    }
+    /// An object that cannot be asked for a type ID at all, a proxy, is turned away as well
+    /// rather than sent a message it would raise on (measured on macOS 26 with an
+    /// `NSProtocolChecker`).
+    init?(_ object: AnyObject)
 }
 
 extension ItemReference {
