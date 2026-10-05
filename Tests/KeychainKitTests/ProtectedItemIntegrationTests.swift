@@ -82,12 +82,34 @@ import LocalAuthentication
 
 /// Whether this device enforces an access control that asks for the user.
 ///
-/// A simulator with no passcode and no enrolled biometrics accepts such an access control and
-/// then ignores it: the item is read with no prompt (measured on the iOS 27 simulator). Only a
-/// device with a passcode, or a simulator with Face ID enrolled, says anything about a protected
-/// item.
+/// A simulator accepts such an access control and then ignores it: the item is read with no
+/// prompt, even where `LAContext.canEvaluatePolicy(_:error:)` says the device can authenticate
+/// its owner (measured on the iOS 27 simulator). So the probe asks the keychain itself: it adds
+/// a password protected by user presence, reads its data with interaction not allowed, and
+/// removes it. Only a keychain that refuses that read says anything about a protected item.
 enum DeviceAuthentication {
-    static let isEnforced = LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
+    static let isEnforced: Bool = {
+        let keychain = Keychain()
+        let service = "dev.sinoru.KeychainKit.tests.probe.protected"
+        let probe = Query<GenericPassword>(service: service)
+        try? keychain.delete(matching: probe)
+        defer { try? keychain.delete(matching: probe) }
+        do throws(KeychainError) {
+            var item = Item(service: service, account: "probe", password: "probe")
+            item.attributes.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked, flags: .userPresence))
+            try keychain.add(item)
+
+            let context = LAContext()
+            context.interactionNotAllowed = true
+            _ = try PasswordSearch(service: service)([
+                SecItemKey(kSecReturnData): .bool(true),
+                SecItemKey(kSecUseAuthenticationContext): .object(SecObject(context)),
+            ])
+            return false
+        } catch {
+            return error.code == .interactionNotAllowed
+        }
+    }()
 }
 
 /// Whether the person running the tests agreed to answer an authentication prompt.
@@ -105,7 +127,7 @@ enum AuthenticationPrompt {
 /// Only `dataFetchAsksForTheUser` shows a prompt, and it runs only when asked to.
 @Suite(.enabled(
     if: DataProtectionKeychain.isReachable && DeviceAuthentication.isEnforced,
-    "A protected item needs a host app and a device with a passcode or enrolled biometrics.",
+    "A protected item needs a host app and a keychain that enforces its access control.",
 ))
 struct ProtectedItemIntegrationTests {
     private let keychain = Keychain()
