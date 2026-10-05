@@ -12,10 +12,10 @@ internal import Security
 /// An access control object: an accessibility level plus the conditions a user must meet.
 ///
 /// The `SecAccessControl` object is created eagerly in `init`, so an invalid accessibility value
-/// is reported there rather than when the item is added. An `AccessControl` read back from the
-/// keychain carries only the opaque object, because the framework does not expose the
-/// constraints inside it; `flags` is then `nil`, and `accessibility` is the level the keychain
-/// reported next to the object.
+/// or flag combination is reported there rather than when the item is added. An `AccessControl`
+/// read back from the keychain carries only the opaque object, because the framework does not
+/// expose the constraints inside it; `flags` is then `nil`, and `accessibility` is the level the
+/// keychain reported next to the object.
 public struct AccessControl: Hashable, Sendable {
     /// The accessibility level, or `nil` for a value read back without one.
     public let accessibility: Accessibility?
@@ -25,10 +25,17 @@ public struct AccessControl: Hashable, Sendable {
 
     let secObject: SecObject
 
-    /// Creates the access control object now, so an unknown accessibility value fails here.
+    /// Creates the access control object now, so an invalid value fails here.
     ///
-    /// The framework rejects an unknown accessibility value with `errSecParam`; any flag
-    /// combination is accepted at creation and judged when the item is used.
+    /// The framework rejects an unknown accessibility value and the following flag
+    /// combinations with `errSecParam`:
+    ///
+    /// - `or` together with `and`.
+    /// - `biometryAny` together with `biometryCurrentSet`.
+    /// - `userPresence` together with any flag other than `applicationPassword` and
+    ///   `privateKeyUsage`.
+    ///
+    /// Any other combination is accepted at creation and judged when the item is used.
     public init(accessibility: Accessibility, flags: Flags = []) throws(KeychainError) {
         var error: Unmanaged<CFError>?
         let control = unsafe SecAccessControlCreateWithFlags(

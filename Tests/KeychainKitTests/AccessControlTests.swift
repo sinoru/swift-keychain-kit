@@ -35,7 +35,7 @@ import Testing
         #endif
     }
 
-    @Test func createsAnAccessControlObjectForAnyFlagCombination() throws {
+    @Test func combinedFlags() throws {
         let control = try AccessControl(accessibility: .whenPasscodeSetThisDeviceOnly, flags: [.biometryAny, .or, .devicePasscode])
         #expect(control.accessibility == .whenPasscodeSetThisDeviceOnly)
         #expect(control.flags == [.biometryAny, .or, .devicePasscode])
@@ -45,6 +45,17 @@ import Testing
     @Test func rejectsUnknownAccessibility() {
         #expect(throws: KeychainError(code: .invalidParameter)) {
             try AccessControl(accessibility: Accessibility(rawValue: "bogus"), flags: .userPresence)
+        }
+    }
+
+    @Test(arguments: [
+        [AccessControl.Flags.or, .and],
+        [.biometryAny, .biometryCurrentSet],
+        [.userPresence, .devicePasscode],
+    ] as [AccessControl.Flags])
+    func conflictingFlagCombinations(flags: AccessControl.Flags) {
+        #expect(throws: KeychainError(code: .invalidParameter)) {
+            try AccessControl(accessibility: .whenUnlocked, flags: flags)
         }
     }
 
