@@ -61,6 +61,29 @@ import Testing
         #expect(opaque != control)
     }
 
+    /// The data protection keychain returns both keys for every item; only the object goes back.
+    @Test func accessControlReadBackNextToAnAccessibilityCarriesIt() throws {
+        let control = try AccessControl(accessibility: .whenUnlocked, flags: .userPresence)
+        let attributes = Attributes<GenericPassword>(secDictionary: [
+            SecItemKey(kSecAttrAccessible): .string(kSecAttrAccessibleWhenUnlocked as String),
+            SecItemKey(kSecAttrAccessControl): .object(control.secObject),
+        ])
+        guard case .accessControl(let opaque)? = attributes.protection else {
+            Issue.record("expected an access control, got \(String(describing: attributes.protection))")
+            return
+        }
+        #expect(opaque.accessibility == .whenUnlocked)
+        #expect(opaque.flags == nil)
+        #expect(attributes.secDictionary == [SecItemKey(kSecAttrAccessControl): .object(control.secObject)])
+    }
+
+    @Test func protectionReportsTheAccessibilityOfEitherForm() throws {
+        let control = try AccessControl(accessibility: .whenUnlocked, flags: .userPresence)
+        #expect(Protection.accessible(.afterFirstUnlock).accessibility == .afterFirstUnlock)
+        #expect(Protection.accessControl(control).accessibility == .whenUnlocked)
+        #expect(Protection.accessControl(AccessControl(opaque: control.secObject, accessibility: nil)).accessibility == nil)
+    }
+
     @Test func attributesAreHashableByContent() throws {
         var first = Attributes<GenericPassword>()
         first.service = "service"

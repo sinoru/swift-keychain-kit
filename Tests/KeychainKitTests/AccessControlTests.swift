@@ -59,13 +59,21 @@ import Testing
     }
 
     @Test func opaqueValuesCompareByContentsNotObjectIdentity() throws {
-        let first = AccessControl(opaque: try AccessControl(accessibility: .whenUnlocked, flags: .userPresence).secObject)
-        let second = AccessControl(opaque: try AccessControl(accessibility: .whenUnlocked, flags: .userPresence).secObject)
-        let different = AccessControl(opaque: try AccessControl(accessibility: .whenUnlocked, flags: .devicePasscode).secObject)
+        let userPresence = try AccessControl(accessibility: .whenUnlocked, flags: .userPresence).secObject
+        let first = AccessControl(opaque: userPresence, accessibility: .whenUnlocked)
+        let second = AccessControl(
+            opaque: try AccessControl(accessibility: .whenUnlocked, flags: .userPresence).secObject,
+            accessibility: .whenUnlocked,
+        )
+        let different = AccessControl(
+            opaque: try AccessControl(accessibility: .whenUnlocked, flags: .devicePasscode).secObject,
+            accessibility: .whenUnlocked,
+        )
         #expect(first.secObject != second.secObject)
         #expect(first == second)
         #expect(first.hashValue == second.hashValue)
         #expect(first != different)
+        #expect(first != AccessControl(opaque: userPresence, accessibility: nil))
     }
 
     @Test func mapsStatusDomainErrorsToTheirStatus() {

@@ -140,6 +140,47 @@ struct DataProtectionIntegrationTests {
         #expect(try keychain.attributes(matching: passwords(account: "one"))?.label == "renamed")
     }
 
+    /// The keychain returns an access control object for every item, whichever form it was
+    /// stored in, so the level is read from the object's `accessibility`.
+    @Test(arguments: [
+        Protection.accessible(.afterFirstUnlockThisDeviceOnly),
+        nil,
+        Protection.accessControl(try AccessControl(accessibility: .whenUnlocked, flags: .userPresence)),
+    ])
+    func protectionReadsBackAsAnAccessControlWithItsAccessibility(protection: Protection?) throws {
+        defer { try? keychain.delete(matching: passwords()) }
+
+        var item = Item(service: service, account: "one", password: "secret")
+        item.attributes.protection = protection
+        try keychain.add(item)
+        let stored = try #require(try keychain.attributes(matching: passwords(account: "one")))
+        guard case .accessControl(let control)? = stored.protection else {
+            Issue.record("expected an access control, got \(String(describing: stored.protection))")
+            return
+        }
+        let expected: Accessibility? = switch protection {
+        case .accessible(let accessibility)?: accessibility
+        case .accessControl(let control)?: control.accessibility
+        case nil: .whenUnlocked
+        }
+        #expect(control.accessibility == expected)
+        #expect(stored.protection?.accessibility == expected)
+        #expect(control.flags == nil)
+    }
+
+    /// The keychain rejects an access control with constraints next to an accessibility level.
+    @Test func constrainedPasswordThatWasReadCanBeChangedAndPassedBack() throws {
+        defer { try? keychain.delete(matching: passwords()) }
+
+        var constrained = Item(service: service, account: "one", password: "secret")
+        constrained.attributes.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked, flags: .userPresence))
+        try keychain.add(constrained)
+        var item = try #require(try keychain.first(matching: passwords(account: "one")))
+        item.label = "renamed"
+        try keychain.update(matching: passwords(account: "one"), with: item)
+        #expect(try keychain.attributes(matching: passwords(account: "one"))?.label == "renamed")
+    }
+
     @Test func asynchronousFormsReachTheKeychain() async throws {
         try await keychain.add(Item(service: service, account: "one", password: "secret"))
         #expect(try await keychain.first(matching: passwords(account: "one"))?.password == "secret")

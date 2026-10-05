@@ -30,8 +30,13 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
     /// Builds attributes from a dictionary the framework returned.
     ///
     /// The class key is dropped because `Class` already carries it, and the `kSecValue*` entries
-    /// are dropped because they are not attributes. An access control object becomes an opaque
-    /// `AccessControl` whose constraints are unknown.
+    /// are dropped because they are not attributes.
+    ///
+    /// An access control object becomes an opaque `AccessControl` whose constraints are unknown.
+    /// The data protection keychain returns one for every item, next to the accessibility level
+    /// it holds, and the level moves into the `AccessControl`: the two keys must not go back to
+    /// the framework together, which rejects a level next to an object with constraints
+    /// (`errSecParam`, measured on the iOS 27 simulator).
     package init(secDictionary: SecDictionary) {
         var storage = secDictionary
         storage[.itemClass] = nil
@@ -39,7 +44,11 @@ public struct Attributes<Class: ItemClass>: Hashable, Sendable {
         storage[.valueRef] = nil
         storage[.valuePersistentRef] = nil
         if case .object(let object)? = storage.removeValue(forKey: .accessControl) {
-            accessControl = AccessControl(opaque: object)
+            var accessibility: Accessibility?
+            if case .string(let rawValue)? = storage.removeValue(forKey: .accessible) {
+                accessibility = Accessibility(rawValue: rawValue)
+            }
+            accessControl = AccessControl(opaque: object, accessibility: accessibility)
         }
         self.storage = storage
     }

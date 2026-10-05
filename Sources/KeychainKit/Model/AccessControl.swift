@@ -14,9 +14,10 @@ internal import Security
 /// The `SecAccessControl` object is created eagerly in `init`, so an invalid accessibility value
 /// is reported there rather than when the item is added. An `AccessControl` read back from the
 /// keychain carries only the opaque object, because the framework does not expose the
-/// constraints inside it; `accessibility` and `flags` are then `nil`.
+/// constraints inside it; `flags` is then `nil`, and `accessibility` is the level the keychain
+/// reported next to the object.
 public struct AccessControl: Hashable, Sendable {
-    /// The accessibility level, or `nil` for a value read back from the keychain.
+    /// The accessibility level, or `nil` for a value read back without one.
     public let accessibility: Accessibility?
 
     /// The user-presence conditions, or `nil` for a value read back from the keychain.
@@ -45,19 +46,19 @@ public struct AccessControl: Hashable, Sendable {
         self.secObject = SecObject(control)
     }
 
-    init(opaque secObject: SecObject) {
-        accessibility = nil
+    init(opaque secObject: SecObject, accessibility: Accessibility?) {
+        self.accessibility = accessibility
         flags = nil
         self.secObject = secObject
     }
 
     /// Values with known constraints compare by those constraints; opaque values compare by
-    /// the contents of the underlying object, so reading the same item twice yields equal
-    /// values. The two kinds never compare equal.
+    /// their level and the contents of the underlying object, so reading the same item twice
+    /// yields equal values. The two kinds never compare equal.
     public static func == (lhs: AccessControl, rhs: AccessControl) -> Bool {
         switch (lhs.flags, rhs.flags) {
         case (nil, nil):
-            lhs.secObject.isEquivalent(to: rhs.secObject)
+            lhs.accessibility == rhs.accessibility && lhs.secObject.isEquivalent(to: rhs.secObject)
         case (.some, .some):
             lhs.accessibility == rhs.accessibility && lhs.flags == rhs.flags
         default:
