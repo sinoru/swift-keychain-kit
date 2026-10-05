@@ -14,7 +14,7 @@ let keychain = Keychain()
 
 try keychain.add(Item(service: "com.example.app", account: "alice", password: "s3cret"))
 
-if let item = try keychain.first(matching: Query(service: "com.example.app", account: "alice")) {
+if let item = try keychain.fetchFirst(matching: Query(service: "com.example.app", account: "alice")) {
     print(item.password ?? "")
 }
 ```
@@ -74,10 +74,10 @@ many items you get and in what shape; nothing matching is `nil` or `[]`, not an 
 ```swift
 let query = Query(service: "com.example.app", account: "alice")
 
-try keychain.first(matching: query)        // Item?
-try keychain.data(matching: query)         // Data?
-try keychain.attributes(matching: query)   // Attributes?, never prompts
-try keychain.all(matching: Query(service: "com.example.app"))   // [Item]
+try keychain.fetchFirst(matching: query)             // Item?
+try keychain.fetchFirstData(matching: query)         // Data?
+try keychain.fetchFirstAttributes(matching: query)   // Attributes?, never prompts
+try keychain.fetch(matching: Query(service: "com.example.app"))   // [Item]
 
 try keychain.update(matching: query, with: changes)   // throws .itemNotFound
 try keychain.delete(matching: query)                  // idempotent
@@ -99,7 +99,7 @@ try key.publicKey?.isValidSignature(signature, for: message, using: .ecdsaSignat
 
 var query = Query<CryptographicKey>()
 query.applicationTag = Data("com.example.keys.signing".utf8)
-try keychain.reference(matching: query)    // KeyReference?
+try keychain.fetchFirstReference(matching: query)   // KeyReference?
 ```
 
 A Secure Enclave key takes neither a type nor a size, because the Secure Enclave works
@@ -120,7 +120,7 @@ if let certificate = CertificateReference(derRepresentation: der) {
     try keychain.add(Item<Certificate>(reference: certificate))
 }
 
-if let identity = try keychain.reference(matching: Query<Identity>()) {
+if let identity = try keychain.fetchFirstReference(matching: Query<Identity>()) {
     let privateKey = try identity.privateKey()
     let publicKey = try identity.certificate().publicKey
 }
@@ -138,7 +138,7 @@ The same goes for the key operations that can wait on the daemon or the user. `K
 and the references are `Sendable`.
 
 ```swift
-let item = try await keychain.first(matching: query)
+let item = try await keychain.fetchFirst(matching: query)
 ```
 
 ### Protection

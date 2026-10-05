@@ -25,7 +25,7 @@ import Testing
 /// their own, and remove both again. The tests of what the framework drops use a temporary
 /// keychain.
 ///
-/// The tests run one at a time. Run together, `all(matching:)` on the login keychain now and
+/// The tests run one at a time. Run together, `fetch(matching:)` on the login keychain now and
 /// then came back empty while another test was at work, and returned the item when asked again
 /// (measured on macOS 27).
 @Suite(.enabled(if: DataProtectionKeychain.isReachable, "The data protection keychain needs a host app."), .serialized)
@@ -88,8 +88,8 @@ struct StorageRoutingIntegrationTests {
         try addToBoth()
 
         try Keychain.secItemUpdate(unnamed, with: [SecItemKey(kSecValueData): .data(Data("changed".utf8))])
-        #expect(try dataProtection.first(matching: passwords)?.password == "changed")
-        #expect(try fileBased.first(matching: passwords)?.password == "changed")
+        #expect(try dataProtection.fetchFirst(matching: passwords)?.password == "changed")
+        #expect(try fileBased.fetchFirst(matching: passwords)?.password == "changed")
     }
 
     @Test func unnamedDeleteRemovesFromBothKeychains() throws {
@@ -97,8 +97,8 @@ struct StorageRoutingIntegrationTests {
         try addToBoth()
 
         try Keychain.secItemDelete(unnamed)
-        #expect(try dataProtection.first(matching: passwords) == nil)
-        #expect(try fileBased.first(matching: passwords) == nil)
+        #expect(try dataProtection.fetchFirst(matching: passwords) == nil)
+        #expect(try fileBased.fetchFirst(matching: passwords) == nil)
     }
 
     // MARK: File-based storage
@@ -107,17 +107,17 @@ struct StorageRoutingIntegrationTests {
         defer { removeFromBoth() }
         try addToBoth()
 
-        #expect(try fileBased.first(matching: passwords)?.password == "file-based")
-        #expect(try fileBased.all(matching: passwords).map(\.password) == ["file-based"])
-        #expect(try fileBased.allAttributes(matching: passwords).count == 1)
+        #expect(try fileBased.fetchFirst(matching: passwords)?.password == "file-based")
+        #expect(try fileBased.fetch(matching: passwords).map(\.password) == ["file-based"])
+        #expect(try fileBased.fetchAttributes(matching: passwords).count == 1)
 
         try fileBased.update(matching: passwords, with: Item(data: Data("changed".utf8)))
-        #expect(try fileBased.first(matching: passwords)?.password == "changed")
-        #expect(try dataProtection.first(matching: passwords)?.password == "data protection")
+        #expect(try fileBased.fetchFirst(matching: passwords)?.password == "changed")
+        #expect(try dataProtection.fetchFirst(matching: passwords)?.password == "data protection")
 
         try fileBased.delete(matching: passwords)
-        #expect(try fileBased.first(matching: passwords) == nil)
-        #expect(try dataProtection.first(matching: passwords)?.password == "data protection")
+        #expect(try fileBased.fetchFirst(matching: passwords) == nil)
+        #expect(try dataProtection.fetchFirst(matching: passwords)?.password == "data protection")
     }
 
     // MARK: What the framework drops
@@ -140,10 +140,10 @@ struct StorageRoutingIntegrationTests {
         }
 
         try Keychain.secItemAdd(confined)
-        let stored = try #require(try keychain.first(matching: passwords))
+        let stored = try #require(try keychain.fetchFirst(matching: passwords))
         #expect(stored.password == "secret")
         #expect(stored.attributes.protection == nil)
-        #expect(try dataProtection.first(matching: passwords) == nil)
+        #expect(try dataProtection.fetchFirst(matching: passwords) == nil)
     }
 
     /// The same for key generation, which also reads the key that names the keychain.
@@ -165,9 +165,9 @@ struct StorageRoutingIntegrationTests {
         }
 
         _ = try KeyReference(generatingWith: confined)
-        let stored = try #require(try keychain.attributes(matching: keys))
+        let stored = try #require(try keychain.fetchFirstAttributes(matching: keys))
         #expect(stored.protection == nil)
-        #expect(try dataProtection.attributes(matching: keys) == nil)
+        #expect(try dataProtection.fetchFirstAttributes(matching: keys) == nil)
     }
 
     /// A key asked of the Secure Enclave is generated in software instead.
@@ -183,9 +183,9 @@ struct StorageRoutingIntegrationTests {
         let confined = keychain.generationDictionary(for: .ecSECPrimeRandom, sizeInBits: 256, attributes: attributes)
 
         _ = try KeyReference(generatingWith: confined)
-        let stored = try #require(try keychain.attributes(matching: keys))
+        let stored = try #require(try keychain.fetchFirstAttributes(matching: keys))
         #expect(stored.tokenID == nil)
-        #expect(try dataProtection.attributes(matching: keys) == nil)
+        #expect(try dataProtection.fetchFirstAttributes(matching: keys) == nil)
     }
 }
 #endif

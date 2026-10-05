@@ -42,16 +42,16 @@ extension Keychain {
     // MARK: Read
 
     /// The first matching item with its attributes and data, or `nil` when nothing matches.
-    public func first<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> Item<Class>? {
-        guard let value = try fetch(query, returning: [.attributes, .data], all: false) else {
+    public func fetchFirst<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> Item<Class>? {
+        guard let value = try copyMatching(query, returning: [.attributes, .data], all: false) else {
             return nil
         }
         return try Self.item(from: value)
     }
 
     /// The first matching item with its attributes and reference, or `nil` when nothing matches.
-    public func first<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> Item<Class>? {
-        guard let value = try fetch(query, returning: [.attributes, .reference], all: false) else {
+    public func fetchFirst<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> Item<Class>? {
+        guard let value = try copyMatching(query, returning: [.attributes, .reference], all: false) else {
             return nil
         }
         return try Self.item(from: value)
@@ -61,32 +61,32 @@ extension Keychain {
     ///
     /// An item protected by an access control object authenticates for its attributes as it
     /// does for its data (measured on an iPad with a passcode, iOS 27).
-    public func attributes<Class>(matching query: Query<Class>) throws(KeychainError) -> Attributes<Class>? {
-        guard let value = try fetch(query, returning: .attributes, all: false) else {
+    public func fetchFirstAttributes<Class>(matching query: Query<Class>) throws(KeychainError) -> Attributes<Class>? {
+        guard let value = try copyMatching(query, returning: .attributes, all: false) else {
             return nil
         }
         return try Self.attributes(from: value)
     }
 
     /// The data of the first matching item, or `nil` when nothing matches.
-    public func data<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> Data? {
-        guard let value = try fetch(query, returning: .data, all: false) else {
+    public func fetchFirstData<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> Data? {
+        guard let value = try copyMatching(query, returning: .data, all: false) else {
             return nil
         }
         return try Self.data(from: value)
     }
 
     /// The reference of the first matching item, or `nil` when nothing matches.
-    public func reference<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> Class.Reference? {
-        guard let value = try fetch(query, returning: .reference, all: false) else {
+    public func fetchFirstReference<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> Class.Reference? {
+        guard let value = try copyMatching(query, returning: .reference, all: false) else {
             return nil
         }
         return try Self.reference(from: value)
     }
 
     /// The persistent reference of the first matching item, or `nil` when nothing matches.
-    public func persistentReference<Class>(matching query: Query<Class>) throws(KeychainError) -> PersistentReference? {
-        guard let value = try fetch(query, returning: .persistentReference, all: false) else {
+    public func fetchFirstPersistentReference<Class>(matching query: Query<Class>) throws(KeychainError) -> PersistentReference? {
+        guard let value = try copyMatching(query, returning: .persistentReference, all: false) else {
             return nil
         }
         return try Self.persistentReference(from: value)
@@ -104,14 +104,14 @@ extension Keychain {
     /// in one call and the data of each item in a second. An item removed in between is left out
     /// rather than returned without data.
     ///
-    /// Use `allAttributes(matching:)` when the data is not needed.
-    public func all<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
+    /// Use `fetchAttributes(matching:)` when the data is not needed.
+    public func fetch<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
         #if os(macOS)
         if case .fileBased = storage {
-            return try allFetchingDataPerItem(matching: query)
+            return try fetchWithDataPerItem(matching: query)
         }
         #endif
-        guard case .array(let values)? = try fetch(query, returning: [.attributes, .data], all: true) else {
+        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .data], all: true) else {
             return []
         }
         var items: [Item<Class>] = []
@@ -123,16 +123,16 @@ extension Keychain {
     }
 
     #if os(macOS)
-    /// `all(matching:)` for the file-based keychain: one search, then one data fetch per item.
-    private func allFetchingDataPerItem<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
-        guard case .array(let values)? = try fetch(query, returning: [.attributes, .persistentReference], all: true) else {
+    /// `fetch(matching:)` for the file-based keychain: one search, then one data fetch per item.
+    private func fetchWithDataPerItem<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
+        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .persistentReference], all: true) else {
             return []
         }
         var items: [Item<Class>] = []
         items.reserveCapacity(values.count)
         for value in values {
             let (attributes, reference) = try Self.attributesAndReference(from: value) as (Attributes<Class>, PersistentReference)
-            guard let data = try data(matching: dataQuery(for: reference, inheriting: query)) else {
+            guard let data = try fetchFirstData(matching: dataQuery(for: reference, inheriting: query)) else {
                 continue
             }
             items.append(Item(attributes: attributes, data: data))
@@ -142,8 +142,8 @@ extension Keychain {
     #endif
 
     /// Every matching item with its attributes and reference, in one call.
-    public func all<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
-        guard case .array(let values)? = try fetch(query, returning: [.attributes, .reference], all: true) else {
+    public func fetch<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
+        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .reference], all: true) else {
             return []
         }
         var items: [Item<Class>] = []
@@ -155,8 +155,8 @@ extension Keychain {
     }
 
     /// The attributes of every matching item, in one call.
-    public func allAttributes<Class>(matching query: Query<Class>) throws(KeychainError) -> [Attributes<Class>] {
-        guard case .array(let values)? = try fetch(query, returning: .attributes, all: true) else {
+    public func fetchAttributes<Class>(matching query: Query<Class>) throws(KeychainError) -> [Attributes<Class>] {
+        guard case .array(let values)? = try copyMatching(query, returning: .attributes, all: true) else {
             return []
         }
         var attributes: [Attributes<Class>] = []
@@ -168,8 +168,8 @@ extension Keychain {
     }
 
     /// The references of every matching item, in one call.
-    public func allReferences<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Class.Reference] {
-        guard case .array(let values)? = try fetch(query, returning: .reference, all: true) else {
+    public func fetchReferences<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Class.Reference] {
+        guard case .array(let values)? = try copyMatching(query, returning: .reference, all: true) else {
             return []
         }
         var references: [Class.Reference] = []
@@ -181,8 +181,8 @@ extension Keychain {
     }
 
     /// The persistent references of every matching item, in one call.
-    public func allPersistentReferences<Class>(matching query: Query<Class>) throws(KeychainError) -> [PersistentReference] {
-        guard case .array(let values)? = try fetch(query, returning: .persistentReference, all: true) else {
+    public func fetchPersistentReferences<Class>(matching query: Query<Class>) throws(KeychainError) -> [PersistentReference] {
+        guard case .array(let values)? = try copyMatching(query, returning: .persistentReference, all: true) else {
             return []
         }
         var references: [PersistentReference] = []
@@ -230,7 +230,7 @@ extension Keychain {
     }
 
     /// Runs a search, returning `nil` instead of throwing when nothing matches.
-    private func fetch<Class>(_ query: Query<Class>, returning keys: ResultKeys, all: Bool) throws(KeychainError) -> SecValue? {
+    private func copyMatching<Class>(_ query: Query<Class>, returning keys: ResultKeys, all: Bool) throws(KeychainError) -> SecValue? {
         let request = requestDictionary(for: query, returning: keys, all: all)
         try storage.validate(request)
         do {
@@ -354,7 +354,7 @@ extension Keychain {
     }
 
     #if os(macOS)
-    /// The per-item query `all(matching:)` uses on the file-based keychain to fetch data by
+    /// The per-item query `fetch(matching:)` uses on the file-based keychain to fetch data by
     /// persistent reference.
     ///
     /// It matches synchronizable items too and inherits the original query's authentication

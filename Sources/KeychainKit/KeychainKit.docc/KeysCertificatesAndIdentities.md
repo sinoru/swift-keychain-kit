@@ -37,17 +37,17 @@ let ephemeral = try KeyReference(generating: .ecSECPrimeRandom, sizeInBits: 256)
 
 ### Find a key
 
-A ``Query`` for keys matches on the key attributes. `reference(matching:)` returns the
-key alone, and `first(matching:)` returns it together with its attributes.
+A ``Query`` for keys matches on the key attributes. `fetchFirstReference(matching:)` returns the
+key alone, and `fetchFirst(matching:)` returns it together with its attributes.
 
 ```swift
 var query = Query<CryptographicKey>()
 query.applicationTag = Data("com.example.keys.signing".utf8)
 query.keyClass = .private
 
-let key = try keychain.reference(matching: query)      // KeyReference?
-let item = try keychain.first(matching: query)         // Item? with attributes and reference
-let keys = try keychain.allReferences(matching: Query<CryptographicKey>())
+let key = try keychain.fetchFirstReference(matching: query)   // KeyReference?
+let item = try keychain.fetchFirst(matching: query)            // Item? with attributes and reference
+let keys = try keychain.fetchReferences(matching: Query<CryptographicKey>())
 ```
 
 An existing key is added like any other item, with the reference as its value:
@@ -173,7 +173,7 @@ guard let certificate = CertificateReference(derRepresentation: der) else {
 }
 try keychain.add(Item<Certificate>(reference: certificate))
 
-let stored = try keychain.first(matching: Query<Certificate>())
+let stored = try keychain.fetchFirst(matching: Query<Certificate>())
 let subject = stored?.subject                      // the X.500 subject name, DER-encoded
 let certifiedKey = stored?.reference?.publicKey    // KeyReference?
 ```
@@ -187,7 +187,7 @@ An identity is a certificate paired with its private key. It is not added as an 
 its own: the keychain reports one wherever it holds both halves.
 
 ```swift
-if let identity = try keychain.reference(matching: Query<Identity>()) {
+if let identity = try keychain.fetchFirstReference(matching: Query<Identity>()) {
     let certificate = try identity.certificate()
     let privateKey = try identity.privateKey()
 }

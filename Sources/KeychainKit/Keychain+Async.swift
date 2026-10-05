@@ -40,80 +40,80 @@ extension Keychain {
     }
     #endif
 
-    /// The asynchronous form of ``first(matching:)`` for the password classes.
+    /// The asynchronous form of ``fetchFirst(matching:)`` for the password classes.
     @concurrent
-    public func first<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Item<Class>? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> Item<Class>? = first(matching:)
+    public func fetchFirst<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Item<Class>? {
+        let synchronous: (Query<Class>) throws(KeychainError) -> Item<Class>? = fetchFirst(matching:)
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``first(matching:)`` for keys, certificates, and identities.
+    /// The asynchronous form of ``fetchFirst(matching:)`` for keys, certificates, and identities.
     @concurrent
-    public func first<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Item<Class>? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> Item<Class>? = first(matching:)
+    public func fetchFirst<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Item<Class>? {
+        let synchronous: (Query<Class>) throws(KeychainError) -> Item<Class>? = fetchFirst(matching:)
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``attributes(matching:)``.
+    /// The asynchronous form of ``fetchFirstAttributes(matching:)``.
     @concurrent
-    public func attributes<Class>(matching query: Query<Class>) async throws(KeychainError) -> Attributes<Class>? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> Attributes<Class>? = attributes(matching:)
+    public func fetchFirstAttributes<Class>(matching query: Query<Class>) async throws(KeychainError) -> Attributes<Class>? {
+        let synchronous: (Query<Class>) throws(KeychainError) -> Attributes<Class>? = fetchFirstAttributes(matching:)
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``data(matching:)``.
+    /// The asynchronous form of ``fetchFirstData(matching:)``.
     @concurrent
-    public func data<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Data? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> Data? = data(matching:)
+    public func fetchFirstData<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Data? {
+        let synchronous: (Query<Class>) throws(KeychainError) -> Data? = fetchFirstData(matching:)
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``reference(matching:)``.
+    /// The asynchronous form of ``fetchFirstReference(matching:)``.
     @concurrent
-    public func reference<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Class.Reference? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> Class.Reference? = reference(matching:)
+    public func fetchFirstReference<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Class.Reference? {
+        let synchronous: (Query<Class>) throws(KeychainError) -> Class.Reference? = fetchFirstReference(matching:)
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``persistentReference(matching:)``.
+    /// The asynchronous form of ``fetchFirstPersistentReference(matching:)``.
     @concurrent
-    public func persistentReference<Class>(matching query: Query<Class>) async throws(KeychainError) -> PersistentReference? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> PersistentReference? = persistentReference(matching:)
+    public func fetchFirstPersistentReference<Class>(matching query: Query<Class>) async throws(KeychainError) -> PersistentReference? {
+        let synchronous: (Query<Class>) throws(KeychainError) -> PersistentReference? = fetchFirstPersistentReference(matching:)
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``all(matching:)`` for the password classes.
+    /// The asynchronous form of ``fetch(matching:)`` for the password classes.
     @concurrent
-    public func all<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Item<Class>] {
-        let synchronous: (Query<Class>) throws(KeychainError) -> [Item<Class>] = all(matching:)
+    public func fetch<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Item<Class>] {
+        let synchronous: (Query<Class>) throws(KeychainError) -> [Item<Class>] = fetch(matching:)
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``all(matching:)`` for keys, certificates, and identities.
+    /// The asynchronous form of ``fetch(matching:)`` for keys, certificates, and identities.
     @concurrent
-    public func all<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Item<Class>] {
-        let synchronous: (Query<Class>) throws(KeychainError) -> [Item<Class>] = all(matching:)
+    public func fetch<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Item<Class>] {
+        let synchronous: (Query<Class>) throws(KeychainError) -> [Item<Class>] = fetch(matching:)
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``allAttributes(matching:)``.
+    /// The asynchronous form of ``fetchAttributes(matching:)``.
     @concurrent
-    public func allAttributes<Class>(matching query: Query<Class>) async throws(KeychainError) -> [Attributes<Class>] {
-        let synchronous: (Query<Class>) throws(KeychainError) -> [Attributes<Class>] = allAttributes(matching:)
+    public func fetchAttributes<Class>(matching query: Query<Class>) async throws(KeychainError) -> [Attributes<Class>] {
+        let synchronous: (Query<Class>) throws(KeychainError) -> [Attributes<Class>] = fetchAttributes(matching:)
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``allReferences(matching:)``.
+    /// The asynchronous form of ``fetchReferences(matching:)``.
     @concurrent
-    public func allReferences<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Class.Reference] {
-        let synchronous: (Query<Class>) throws(KeychainError) -> [Class.Reference] = allReferences(matching:)
+    public func fetchReferences<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Class.Reference] {
+        let synchronous: (Query<Class>) throws(KeychainError) -> [Class.Reference] = fetchReferences(matching:)
         return try synchronous(query)
     }
 
-    /// The asynchronous form of ``allPersistentReferences(matching:)``.
+    /// The asynchronous form of ``fetchPersistentReferences(matching:)``.
     @concurrent
-    public func allPersistentReferences<Class>(matching query: Query<Class>) async throws(KeychainError) -> [PersistentReference] {
-        let synchronous: (Query<Class>) throws(KeychainError) -> [PersistentReference] = allPersistentReferences(matching:)
+    public func fetchPersistentReferences<Class>(matching query: Query<Class>) async throws(KeychainError) -> [PersistentReference] {
+        let synchronous: (Query<Class>) throws(KeychainError) -> [PersistentReference] = fetchPersistentReferences(matching:)
         return try synchronous(query)
     }
 

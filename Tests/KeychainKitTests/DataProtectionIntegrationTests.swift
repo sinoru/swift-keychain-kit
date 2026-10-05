@@ -75,30 +75,30 @@ struct DataProtectionIntegrationTests {
         item.isInvisible = true
         let reference = try keychain.add(item)
 
-        let found = try #require(try keychain.first(matching: passwords(account: "one")))
+        let found = try #require(try keychain.fetchFirst(matching: passwords(account: "one")))
         #expect(found.password == "secret")
         #expect(found.isInvisible == true)
         #expect(found.synchronizable == false)
         #expect(found.accessGroup != nil)
         #expect(found.creationDate != nil)
-        #expect(try keychain.persistentReference(matching: passwords(account: "one")) == reference)
+        #expect(try keychain.fetchFirstPersistentReference(matching: passwords(account: "one")) == reference)
 
         var byReference = Query<GenericPassword>()
         byReference.persistentReference = reference
-        #expect(try keychain.first(matching: byReference)?.account == "one")
+        #expect(try keychain.fetchFirst(matching: byReference)?.account == "one")
         // A keychain with a default access group must not send it along with the reference.
-        #expect(try Keychain(accessGroup: found.accessGroup).first(matching: byReference)?.account == "one")
+        #expect(try Keychain(accessGroup: found.accessGroup).fetchFirst(matching: byReference)?.account == "one")
 
         var changes = Item<GenericPassword>()
         changes.password = "changed"
         changes.comment = "rotated"
         try keychain.update(matching: passwords(account: "one"), with: changes)
-        let updated = try #require(try keychain.first(matching: passwords(account: "one")))
+        let updated = try #require(try keychain.fetchFirst(matching: passwords(account: "one")))
         #expect(updated.password == "changed")
         #expect(updated.comment == "rotated")
 
         try keychain.delete(matching: passwords(account: "one"))
-        #expect(try keychain.first(matching: passwords(account: "one")) == nil)
+        #expect(try keychain.fetchFirst(matching: passwords(account: "one")) == nil)
     }
 
     @Test func duplicateAddIsRejected() throws {
@@ -116,15 +116,15 @@ struct DataProtectionIntegrationTests {
 
         try keychain.add(Item(service: service, account: "one", password: "1"))
         try keychain.add(Item(service: service, account: "two", password: "2"))
-        #expect(Set(try keychain.all(matching: passwords()).compactMap(\.password)) == ["1", "2"])
+        #expect(Set(try keychain.fetch(matching: passwords()).compactMap(\.password)) == ["1", "2"])
 
         var changes = Item<GenericPassword>()
         changes.comment = "both"
         try keychain.update(matching: passwords(), with: changes)
-        #expect(try keychain.allAttributes(matching: passwords()).map(\.comment) == ["both", "both"])
+        #expect(try keychain.fetchAttributes(matching: passwords()).map(\.comment) == ["both", "both"])
 
         try keychain.delete(matching: passwords())
-        #expect(try keychain.allAttributes(matching: passwords()).isEmpty)
+        #expect(try keychain.fetchAttributes(matching: passwords()).isEmpty)
         #expect(throws: KeychainError(code: .itemNotFound)) {
             try keychain.update(matching: passwords(), with: changes)
         }
@@ -134,10 +134,10 @@ struct DataProtectionIntegrationTests {
         defer { try? keychain.delete(matching: passwords()) }
 
         try keychain.add(Item(service: service, account: "one", password: "secret"))
-        var item = try #require(try keychain.first(matching: passwords(account: "one")))
+        var item = try #require(try keychain.fetchFirst(matching: passwords(account: "one")))
         item.label = "renamed"
         try keychain.update(matching: passwords(account: "one"), with: item)
-        #expect(try keychain.attributes(matching: passwords(account: "one"))?.label == "renamed")
+        #expect(try keychain.fetchFirstAttributes(matching: passwords(account: "one"))?.label == "renamed")
     }
 
     /// The keychain returns an access control object for every item, whichever form it was
@@ -153,7 +153,7 @@ struct DataProtectionIntegrationTests {
         var item = Item(service: service, account: "one", password: "secret")
         item.attributes.protection = protection
         try keychain.add(item)
-        let stored = try #require(try keychain.attributes(matching: passwords(account: "one")))
+        let stored = try #require(try keychain.fetchFirstAttributes(matching: passwords(account: "one")))
         guard case .accessControl(let control)? = stored.protection else {
             Issue.record("expected an access control, got \(String(describing: stored.protection))")
             return
@@ -175,18 +175,18 @@ struct DataProtectionIntegrationTests {
         var constrained = Item(service: service, account: "one", password: "secret")
         constrained.attributes.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked, flags: .userPresence))
         try keychain.add(constrained)
-        var item = try #require(try keychain.first(matching: passwords(account: "one")))
+        var item = try #require(try keychain.fetchFirst(matching: passwords(account: "one")))
         item.label = "renamed"
         try keychain.update(matching: passwords(account: "one"), with: item)
-        #expect(try keychain.attributes(matching: passwords(account: "one"))?.label == "renamed")
+        #expect(try keychain.fetchFirstAttributes(matching: passwords(account: "one"))?.label == "renamed")
     }
 
     @Test func asynchronousFormsReachTheKeychain() async throws {
         try await keychain.add(Item(service: service, account: "one", password: "secret"))
-        #expect(try await keychain.first(matching: passwords(account: "one"))?.password == "secret")
-        #expect(try await keychain.all(matching: passwords()).count == 1)
+        #expect(try await keychain.fetchFirst(matching: passwords(account: "one"))?.password == "secret")
+        #expect(try await keychain.fetch(matching: passwords()).count == 1)
         try await keychain.delete(matching: passwords())
-        #expect(try await keychain.first(matching: passwords()) == nil)
+        #expect(try await keychain.fetchFirst(matching: passwords()) == nil)
     }
 
     // MARK: Keys
@@ -198,7 +198,7 @@ struct DataProtectionIntegrationTests {
         let item = try keyItem(label: "one")
         try keychain.add(item)
 
-        let found = try #require(try keychain.first(matching: keys(label: "one")))
+        let found = try #require(try keychain.fetchFirst(matching: keys(label: "one")))
         #expect(found.keyClass == .private)
         #expect(found.keyType == .ecSECPrimeRandom)
         #expect(found.keySizeInBits == 256)
@@ -214,8 +214,8 @@ struct DataProtectionIntegrationTests {
         privateKeys.keyClass = .private
         var publicKeys = keys()
         publicKeys.keyClass = .public
-        #expect(try keychain.allReferences(matching: privateKeys).count == 1)
-        #expect(try keychain.allReferences(matching: publicKeys).isEmpty)
+        #expect(try keychain.fetchReferences(matching: privateKeys).count == 1)
+        #expect(try keychain.fetchReferences(matching: publicKeys).isEmpty)
     }
 
     /// A key made from its external representation is accepted here, unlike in the file-based
@@ -233,7 +233,7 @@ struct DataProtectionIntegrationTests {
         item.applicationTag = tag
         try keychain.add(item)
 
-        let stored = try #require(try keychain.reference(matching: keys()))
+        let stored = try #require(try keychain.fetchFirstReference(matching: keys()))
         #expect(try stored.externalRepresentation() == generated.externalRepresentation())
     }
 
@@ -243,14 +243,14 @@ struct DataProtectionIntegrationTests {
         try keychain.add(keyItem(label: "one"))
         try keychain.add(keyItem(label: "two"))
 
-        let items = try keychain.all(matching: keys())
+        let items = try keychain.fetch(matching: keys())
         #expect(Set(items.map(\.label)) == ["one", "two"])
         #expect(items.allSatisfy { $0.reference != nil })
-        #expect(try keychain.allReferences(matching: keys()).count == 2)
-        #expect(try keychain.allPersistentReferences(matching: keys()).count == 2)
+        #expect(try keychain.fetchReferences(matching: keys()).count == 2)
+        #expect(try keychain.fetchPersistentReferences(matching: keys()).count == 2)
 
         try keychain.delete(matching: keys())
-        #expect(try keychain.allAttributes(matching: keys()).isEmpty)
+        #expect(try keychain.fetchAttributes(matching: keys()).isEmpty)
     }
 
     /// An item that was read carries its reference, which an update must leave out, and all of
@@ -259,11 +259,11 @@ struct DataProtectionIntegrationTests {
         defer { try? keychain.delete(matching: keys()) }
 
         try keychain.add(keyItem(label: "one"))
-        var item = try #require(try keychain.first(matching: keys()))
+        var item = try #require(try keychain.fetchFirst(matching: keys()))
         #expect(item.reference != nil)
         item.label = "renamed"
         try keychain.update(matching: keys(), with: item)
-        #expect(try keychain.attributes(matching: keys())?.label == "renamed")
+        #expect(try keychain.fetchFirstAttributes(matching: keys())?.label == "renamed")
     }
 
     @Test func generatedKeyIsStoredAsThePrivateKeyAlone() throws {
@@ -274,7 +274,7 @@ struct DataProtectionIntegrationTests {
         attributes.label = "generated"
         let key = try keychain.generateKey(.ecSECPrimeRandom, sizeInBits: 256, attributes: attributes)
 
-        let stored = try keychain.all(matching: keys())
+        let stored = try keychain.fetch(matching: keys())
         #expect(stored.map(\.keyClass) == [.private])
         #expect(stored.first?.label == "generated")
 
@@ -291,7 +291,7 @@ struct DataProtectionIntegrationTests {
 
         let key = try keychain.generateSecureEnclaveKey(applicationTag: tag, label: "enclave")
 
-        let stored = try #require(try keychain.first(matching: keys()))
+        let stored = try #require(try keychain.fetchFirst(matching: keys()))
         #expect(stored.tokenID == .secureEnclave)
         #expect(stored.keyClass == .private)
         #expect(stored.keySizeInBits == 256)
@@ -311,11 +311,11 @@ struct DataProtectionIntegrationTests {
         defer { try? keychain.delete(matching: keys()) }
 
         _ = try keychain.generateSecureEnclaveKey(applicationTag: tag, label: "enclave")
-        var item = try #require(try keychain.first(matching: keys()))
+        var item = try #require(try keychain.fetchFirst(matching: keys()))
         #expect(item.tokenID == .secureEnclave)
         item.label = "renamed"
         try keychain.update(matching: keys(), with: item)
-        #expect(try keychain.attributes(matching: keys())?.label == "renamed")
+        #expect(try keychain.fetchFirstAttributes(matching: keys())?.label == "renamed")
     }
 }
 
@@ -347,7 +347,7 @@ struct DataProtectionCertificateTests {
 
         try keychain.add(Item<Certificate>(reference: try ReferenceFixtures.makeCertificate()))
 
-        var item = try #require(try keychain.first(matching: Query<Certificate>()))
+        var item = try #require(try keychain.fetchFirst(matching: Query<Certificate>()))
         #expect(item.reference?.derRepresentation == ReferenceFixtures.certificateData)
         #expect(item.certificateType == .x509v3)
         #expect(item.certificateEncoding == .der)
@@ -357,11 +357,11 @@ struct DataProtectionCertificateTests {
 
         var version3 = Query<Certificate>()
         version3.certificateType = .x509v3
-        #expect(try keychain.allReferences(matching: version3).count == 1)
+        #expect(try keychain.fetchReferences(matching: version3).count == 1)
 
         item.label = "renamed"
         try keychain.update(matching: Query<Certificate>(), with: item)
-        #expect(try keychain.attributes(matching: Query<Certificate>())?.label == "renamed")
+        #expect(try keychain.fetchFirstAttributes(matching: Query<Certificate>())?.label == "renamed")
     }
 
     /// An identity here carries the attributes of both its certificate and its private key.
@@ -369,7 +369,7 @@ struct DataProtectionCertificateTests {
         removeFixtures()
         defer { removeFixtures() }
 
-        #expect(try keychain.reference(matching: Query<Identity>()) == nil)
+        #expect(try keychain.fetchFirstReference(matching: Query<Identity>()) == nil)
 
         let key = try KeyReference(
             externalRepresentation: ReferenceFixtures.privateKeyData,
@@ -381,11 +381,11 @@ struct DataProtectionCertificateTests {
         try keychain.add(keyItem)
         try keychain.add(Item<Certificate>(reference: try ReferenceFixtures.makeCertificate()))
 
-        let identity = try #require(try keychain.first(matching: Query<Identity>()))
+        let identity = try #require(try keychain.fetchFirst(matching: Query<Identity>()))
         #expect(identity.subject != nil)
         #expect(identity.keyClass == .private)
         #expect(identity.applicationTag == tag)
-        #expect(try keychain.allReferences(matching: Query<Identity>()).count == 1)
+        #expect(try keychain.fetchReferences(matching: Query<Identity>()).count == 1)
 
         let reference = try #require(identity.reference)
         #expect(try reference.certificate().derRepresentation == ReferenceFixtures.certificateData)

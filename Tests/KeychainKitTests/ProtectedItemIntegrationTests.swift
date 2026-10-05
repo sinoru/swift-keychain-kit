@@ -73,7 +73,7 @@ struct PasswordDataSearchIntegrationTests {
             SecItemKey(kSecMatchLimit): .string(kSecMatchLimitAll as String),
         ])
         #expect(PasswordSearch.accountsAndData(in: result) == ["one": Data("1".utf8), "two": Data("2".utf8)])
-        #expect(Set(try keychain.all(matching: Query<GenericPassword>(service: service)).compactMap(\.password)) == ["1", "2"])
+        #expect(Set(try keychain.fetch(matching: Query<GenericPassword>(service: service)).compactMap(\.password)) == ["1", "2"])
     }
 }
 
@@ -187,7 +187,7 @@ struct ProtectedItemIntegrationTests {
         var query = Query<GenericPassword>(service: service, account: "protected")
         query.authenticationContext = AuthenticationContext(context)
         #expect(throws: KeychainError(code: .interactionNotAllowed)) {
-            try keychain.attributes(matching: query)
+            try keychain.fetchFirstAttributes(matching: query)
         }
     }
 
@@ -237,7 +237,7 @@ struct ProtectedItemIntegrationTests {
 
         var query = passwords
         query.skipsItemsRequiringAuthentication = true
-        #expect(try keychain.all(matching: query).map(\.account) == ["open"])
+        #expect(try keychain.fetch(matching: query).map(\.account) == ["open"])
     }
 
     @Test func allWithoutInteractionIsRefused() throws {
@@ -249,7 +249,7 @@ struct ProtectedItemIntegrationTests {
         var query = passwords
         query.authenticationContext = AuthenticationContext(context)
         #expect(throws: KeychainError(code: .interactionNotAllowed)) {
-            try keychain.all(matching: query)
+            try keychain.fetch(matching: query)
         }
     }
 

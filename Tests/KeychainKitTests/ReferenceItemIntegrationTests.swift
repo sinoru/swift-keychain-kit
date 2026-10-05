@@ -55,7 +55,7 @@ import KeychainKit
             let reference = try keychain.add(keyItem(label: "one"))
             #expect(!reference.rawValue.isEmpty)
 
-            let found = try #require(try keychain.first(matching: keys(label: "one")))
+            let found = try #require(try keychain.fetchFirst(matching: keys(label: "one")))
             #expect(found.reference != nil)
             #expect(found.label == "one")
             #expect(found.applicationTag == Self.tag)
@@ -70,7 +70,7 @@ import KeychainKit
         try withKeychain { keychain in
             let item = try keyItem(label: "one")
             try keychain.add(item)
-            let stored = try #require(try keychain.reference(matching: keys()))
+            let stored = try #require(try keychain.fetchFirstReference(matching: keys()))
 
             let original = try #require(item.reference)
             #expect(try publicKeyData(of: stored) == publicKeyData(of: original))
@@ -82,21 +82,21 @@ import KeychainKit
             try keychain.add(keyItem(label: "one"))
             try keychain.add(keyItem(label: "two"))
 
-            let items = try keychain.all(matching: keys())
+            let items = try keychain.fetch(matching: keys())
             #expect(Set(items.map(\.label)) == ["one", "two"])
             #expect(items.allSatisfy { $0.reference != nil })
-            #expect(try keychain.allReferences(matching: keys()).count == 2)
-            #expect(try keychain.allAttributes(matching: keys()).count == 2)
-            #expect(try keychain.allPersistentReferences(matching: keys()).count == 2)
+            #expect(try keychain.fetchReferences(matching: keys()).count == 2)
+            #expect(try keychain.fetchAttributes(matching: keys()).count == 2)
+            #expect(try keychain.fetchPersistentReferences(matching: keys()).count == 2)
         }
     }
 
     @Test func nothingMatchingIsNotAnError() throws {
         try withKeychain { (keychain: Keychain) throws in
-            #expect(try keychain.first(matching: keys()) == nil)
-            #expect(try keychain.reference(matching: keys()) == nil)
-            #expect(try keychain.all(matching: keys()).isEmpty)
-            #expect(try keychain.allReferences(matching: keys()).isEmpty)
+            #expect(try keychain.fetchFirst(matching: keys()) == nil)
+            #expect(try keychain.fetchFirstReference(matching: keys()) == nil)
+            #expect(try keychain.fetch(matching: keys()).isEmpty)
+            #expect(try keychain.fetchReferences(matching: keys()).isEmpty)
         }
     }
 
@@ -108,10 +108,10 @@ import KeychainKit
             var changes = Item<CryptographicKey>()
             changes.label = "renamed"
             try keychain.update(matching: keys(label: "one"), with: changes)
-            #expect(try keychain.attributes(matching: keys(label: "renamed")) != nil)
+            #expect(try keychain.fetchFirstAttributes(matching: keys(label: "renamed")) != nil)
 
             try keychain.delete(matching: keys())
-            #expect(try keychain.allReferences(matching: keys()).isEmpty)
+            #expect(try keychain.fetchReferences(matching: keys()).isEmpty)
         }
     }
 
@@ -121,10 +121,10 @@ import KeychainKit
         let keychain = Keychain(storage: .fileBased(temporary.fileKeychain))
 
         try await keychain.add(keyItem(label: "one"))
-        #expect(try await keychain.first(matching: keys())?.label == "one")
-        #expect(try await keychain.reference(matching: keys()) != nil)
-        #expect(try await keychain.all(matching: keys()).count == 1)
-        #expect(try await keychain.allReferences(matching: keys()).count == 1)
+        #expect(try await keychain.fetchFirst(matching: keys())?.label == "one")
+        #expect(try await keychain.fetchFirstReference(matching: keys()) != nil)
+        #expect(try await keychain.fetch(matching: keys()).count == 1)
+        #expect(try await keychain.fetchReferences(matching: keys()).count == 1)
     }
 
     // MARK: Generation
@@ -136,13 +136,13 @@ import KeychainKit
             attributes.label = "generated"
             let key = try keychain.generateKey(.ecSECPrimeRandom, sizeInBits: 256, attributes: attributes)
 
-            let stored = try keychain.all(matching: Query<CryptographicKey>())
+            let stored = try keychain.fetch(matching: Query<CryptographicKey>())
             #expect(stored.count == 1)
             #expect(stored.first?.keyClass == .private)
             #expect(stored.first?.label == "generated")
             #expect(stored.first?.applicationTag == Self.tag)
 
-            let found = try #require(try keychain.reference(matching: keys(label: "generated")))
+            let found = try #require(try keychain.fetchFirstReference(matching: keys(label: "generated")))
             let message = Data("message".utf8)
             let signature = try found.signature(for: message, using: .ecdsaSignatureMessageX962SHA256)
             let publicKey = try #require(key.publicKey)
@@ -158,7 +158,7 @@ import KeychainKit
         var attributes = Attributes<CryptographicKey>()
         attributes.applicationTag = Self.tag
         _ = try await keychain.generateKey(.rsa, sizeInBits: 2048, attributes: attributes)
-        #expect(try await keychain.first(matching: keys())?.keyType == .rsa)
+        #expect(try await keychain.fetchFirst(matching: keys())?.keyType == .rsa)
     }
 
     // MARK: Certificates and identities
@@ -168,7 +168,7 @@ import KeychainKit
             let certificate = try ReferenceFixtures.makeCertificate()
             try keychain.add(Item<Certificate>(reference: certificate))
 
-            let found = try #require(try keychain.first(matching: Query<Certificate>()))
+            let found = try #require(try keychain.fetchFirst(matching: Query<Certificate>()))
             let reference = try #require(found.reference)
             #expect(reference.derRepresentation == ReferenceFixtures.certificateData)
             #expect(found.subject != nil)
@@ -177,7 +177,7 @@ import KeychainKit
             // The file-based keychain does not report the version here; see `CertificateType`.
             #expect(found.certificateType != nil)
             #expect(found.certificateEncoding == .der)
-            #expect(try keychain.allReferences(matching: Query<Certificate>()).count == 1)
+            #expect(try keychain.fetchReferences(matching: Query<Certificate>()).count == 1)
         }
     }
 
@@ -185,11 +185,11 @@ import KeychainKit
         try withKeychain { keychain in
             try keychain.add(Item<Certificate>(reference: try ReferenceFixtures.makeCertificate()))
 
-            var item = try #require(try keychain.first(matching: Query<Certificate>()))
+            var item = try #require(try keychain.fetchFirst(matching: Query<Certificate>()))
             #expect(item.reference != nil)
             item.label = "renamed"
             try keychain.update(matching: Query<Certificate>(), with: item)
-            #expect(try keychain.attributes(matching: Query<Certificate>())?.label == "renamed")
+            #expect(try keychain.fetchFirstAttributes(matching: Query<Certificate>())?.label == "renamed")
         }
     }
 
@@ -198,12 +198,12 @@ import KeychainKit
     @Test func keyIsUpdatedWithOnlyTheChange() throws {
         try withKeychain { keychain in
             try keychain.add(keyItem(label: "one"))
-            let read = try #require(try keychain.first(matching: keys()))
+            let read = try #require(try keychain.fetchFirst(matching: keys()))
 
             var changes = Item<CryptographicKey>(reference: read.reference)
             changes.label = "renamed"
             try keychain.update(matching: keys(), with: changes)
-            #expect(try keychain.attributes(matching: keys())?.label == "renamed")
+            #expect(try keychain.fetchFirstAttributes(matching: keys())?.label == "renamed")
 
             var whole = read
             whole.label = "again"
@@ -219,7 +219,7 @@ import KeychainKit
     @Test func certificateAndItsPrivateKeyFormAnIdentity() throws {
         try withFileKeychain { fileKeychain in
             let keychain = Keychain(storage: .fileBased(fileKeychain))
-            #expect(try keychain.reference(matching: Query<Identity>()) == nil)
+            #expect(try keychain.fetchFirstReference(matching: Query<Identity>()) == nil)
 
             let status = SecItemImport(
                 Data(ReferenceFixtures.privateKeyPEM.utf8) as CFData, nil, nil, nil, [], nil, fileKeychain.reference, nil,
@@ -227,7 +227,7 @@ import KeychainKit
             try #require(status == errSecSuccess)
             try keychain.add(Item<Certificate>(reference: try ReferenceFixtures.makeCertificate()))
 
-            let identity = try #require(try keychain.first(matching: Query<Identity>()))
+            let identity = try #require(try keychain.fetchFirst(matching: Query<Identity>()))
             #expect(identity.subject != nil)
 
             let reference = try #require(identity.reference)
@@ -241,7 +241,7 @@ import KeychainKit
             let signature = try privateKey.signature(for: message, using: .ecdsaSignatureMessageX962SHA256)
             #expect(try publicKey.isValidSignature(signature, for: message, using: .ecdsaSignatureMessageX962SHA256))
             #expect(try #require(privateKey.publicKey).externalRepresentation() == ReferenceFixtures.publicKeyData)
-            #expect(try keychain.allReferences(matching: Query<Identity>()).count == 1)
+            #expect(try keychain.fetchReferences(matching: Query<Identity>()).count == 1)
         }
     }
 }

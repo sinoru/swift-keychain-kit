@@ -43,17 +43,17 @@ many items come back and in what form. Nothing matching is not an error.
 ```swift
 let query = Query(service: "com.example.app", account: "alice")
 
-let item = try keychain.first(matching: query)                 // Item? with attributes and data
-let secret = try keychain.data(matching: query)                // Data?
-let attributes = try keychain.attributes(matching: query)      // Attributes?
+let item = try keychain.fetchFirst(matching: query)                  // Item? with attributes and data
+let secret = try keychain.fetchFirstData(matching: query)            // Data?
+let attributes = try keychain.fetchFirstAttributes(matching: query)  // Attributes?
 
-let everything = try keychain.all(matching: Query(service: "com.example.app"))   // [Item]
+let everything = try keychain.fetch(matching: Query(service: "com.example.app"))   // [Item]
 ```
 
 An item behind an access control object authenticates for its attributes as it does for
-its data. `all(matching:)` reads everything in one call on the data protection keychain. The
+its data. `fetch(matching:)` reads everything in one call on the data protection keychain. The
 file-based keychain on macOS returns data for only one password item at a time, so there it
-fetches each item's data in a second call; use `allAttributes(matching:)` when the data is
+fetches each item's data in a second call; use `fetchAttributes(matching:)` when the data is
 not needed.
 
 ### Update and delete
@@ -74,7 +74,7 @@ asynchronous context. The call runs on the global concurrent executor rather tha
 caller's actor, and it cannot be cancelled once started.
 
 ```swift
-let item = try await keychain.first(matching: query)
+let item = try await keychain.fetchFirst(matching: query)
 ```
 
 ### Protect an item
@@ -100,7 +100,7 @@ context.localizedReason = "Unlock your account"
 
 var query = Query(service: "com.example.bank", account: "alice")
 query.authenticationContext = AuthenticationContext(context)
-let item = try keychain.first(matching: query)
+let item = try keychain.fetchFirst(matching: query)
 ```
 
 ### Share items between your apps

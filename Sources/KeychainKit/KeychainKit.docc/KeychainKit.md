@@ -18,7 +18,7 @@ let keychain = Keychain()
 
 try keychain.add(Item(service: "com.example.app", account: "alice", password: "s3cret"))
 
-if let item = try keychain.first(matching: Query(service: "com.example.app", account: "alice")) {
+if let item = try keychain.fetchFirst(matching: Query(service: "com.example.app", account: "alice")) {
     print(item.password ?? "")
 }
 ```
@@ -27,7 +27,7 @@ Every operation also has an `async` form that runs off the caller's actor, becau
 framework blocks the calling thread while it talks to the keychain daemon.
 
 ```swift
-let item = try await keychain.first(matching: Query(service: "com.example.app", account: "alice"))
+let item = try await keychain.fetchFirst(matching: Query(service: "com.example.app", account: "alice"))
 ```
 
 ## Topics
