@@ -81,9 +81,12 @@ import Testing
         #expect(KeychainError(cfError: error).code == .duplicateItem)
     }
 
-    @Test func mapsForeignDomainErrorsToInvalidParameter() {
+    @Test func mapsUnknownDomainErrorsToInternalError() {
         let error = CFErrorCreate(nil, "com.example" as CFString, 42, nil)
-        #expect(KeychainError(cfError: error).code == .invalidParameter)
+        #expect(KeychainError(cfError: error).code == .internalError)
+    }
+
+    @Test func mapsMissingErrorToInvalidParameter() {
         #expect(KeychainError(cfError: nil).code == .invalidParameter)
     }
 }

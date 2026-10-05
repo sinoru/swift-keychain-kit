@@ -97,6 +97,12 @@ extension KeychainError {
 
         /// An I/O error occurred (`errSecIO`).
         public static let ioFailed = Code(rawValue: errSecIO)
+
+        /// An internal error occurred (`errSecInternalError`).
+        ///
+        /// An operation on a key also reports this for a failure that has no status of its
+        /// own, such as an error in a domain the library does not know.
+        public static let internalError = Code(rawValue: errSecInternalError)
     }
 }
 
@@ -109,16 +115,51 @@ extension KeychainError {
     }
 
     /// Security reports failures in `NSOSStatusErrorDomain` with the status as the code.
-    /// Anything else, including a missing error, is reported as an invalid parameter.
+    ///
+    /// An operation on a key that lives on a token, the Secure Enclave included, reports the
+    /// token's own error instead, in the LocalAuthentication or CryptoTokenKit domain. Those
+    /// are classified the way the framework classifies them for the SecItem functions. What
+    /// that leaves without a status of its own, an error in any other domain included, is an
+    /// internal error. A missing error is reported as an invalid parameter.
+    ///
+    /// The domains are compared by name, which needs neither framework and so also works where
+    /// LocalAuthentication is unavailable.
     init(cfError: CFError?) {
-        guard let cfError,
-              CFErrorGetDomain(cfError) == kCFErrorDomainOSStatus,
-              let status = OSStatus(exactly: CFErrorGetCode(cfError))
-        else {
+        guard let cfError else {
             self.init(code: .invalidParameter)
             return
         }
-        self.init(status: status)
+        let code = CFErrorGetCode(cfError)
+        switch CFErrorGetDomain(cfError) as String? {
+        case NSOSStatusErrorDomain:
+            self.init(status: OSStatus(exactly: code) ?? Code.internalError.rawValue)
+        case "com.apple.LocalAuthentication":
+            self.init(code: Self.code(forLocalAuthenticationCode: code))
+        case "CryptoTokenKit":
+            self.init(code: Self.code(forCryptoTokenKitCode: code))
+        default:
+            self.init(code: .internalError)
+        }
+    }
+
+    private static func code(forLocalAuthenticationCode code: CFIndex) -> Code {
+        switch code {
+        case -2: .userCanceled // LAErrorUserCancel
+        case -1001: .invalidParameter // LAErrorParameter
+        case -1004: .interactionNotAllowed // LAErrorNotInteractive
+        default: .authenticationFailed
+        }
+    }
+
+    private static func code(forCryptoTokenKitCode code: CFIndex) -> Code {
+        switch code {
+        case -8: .invalidParameter // TKErrorCodeBadParameter
+        case -1: .unimplemented // TKErrorCodeNotImplemented
+        case -4: .userCanceled // TKErrorCodeCanceledByUser
+        case -3: .decodingFailed // TKErrorCodeCorruptedData
+        case -6, -7: .itemNotFound // TKErrorCodeObjectNotFound, TKErrorCodeTokenNotFound
+        default: .internalError
+        }
     }
 }
 
