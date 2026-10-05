@@ -82,6 +82,11 @@ extension KeyReference {
     ///
     /// The algorithm decides whether `data` is the message or a digest of it, and the format of
     /// the signature.
+    ///
+    /// A key whose access control asks for the user makes this call wait until they
+    /// authenticate. It throws `userCanceled` when they dismiss the prompt, and
+    /// `interactionNotAllowed` when the key's authentication context forbids one. Use the
+    /// `async` form to keep the wait off the caller's actor.
     public func signature(for data: Data, using algorithm: KeyAlgorithm) throws(KeychainError) -> Data {
         var error: Unmanaged<CFError>?
         let signature = unsafe SecKeyCreateSignature(reference, algorithm.secKeyAlgorithm, data as CFData, &error)
@@ -114,6 +119,9 @@ extension KeyReference {
     }
 
     /// `ciphertext` decrypted with this private key (`SecKeyCreateDecryptedData`).
+    ///
+    /// Waits for the user and fails as `signature(for:using:)` does when the key's access
+    /// control asks for them.
     public func decryptedData(for ciphertext: Data, using algorithm: KeyAlgorithm) throws(KeychainError) -> Data {
         var error: Unmanaged<CFError>?
         let plaintext = unsafe SecKeyCreateDecryptedData(reference, algorithm.secKeyAlgorithm, ciphertext as CFData, &error)
@@ -125,6 +133,9 @@ extension KeyReference {
     ///
     /// An algorithm with a key derivation function requires `requestedSize`, the length of the
     /// result in bytes, and accepts `sharedInfo`. The plain algorithms take neither.
+    ///
+    /// Waits for the user and fails as `signature(for:using:)` does when the key's access
+    /// control asks for them.
     public func keyExchangeResult(
         with publicKey: KeyReference,
         using algorithm: KeyAlgorithm,
