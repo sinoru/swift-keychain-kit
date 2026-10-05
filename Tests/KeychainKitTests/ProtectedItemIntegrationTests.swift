@@ -348,7 +348,9 @@ struct ProtectedKeyIntegrationTests {
     func cancelledSignatureIsUserCanceled() throws {
         defer { try? keychain.delete(matching: keys) }
         let context = LAContext()
+        #if !os(watchOS)
         context.localizedReason = "Cancel this prompt."
+        #endif
         let key = try keychain.generateSecureEnclaveKey(
             applicationTag: tag,
             constraints: .devicePasscode,
