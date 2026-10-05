@@ -235,9 +235,7 @@ struct ProtectedItemIntegrationTests {
         defer { try? keychain.delete(matching: passwords) }
         try addOpenAndProtectedPasswords()
 
-        var query = passwords
-        query.skipsItemsRequiringAuthentication = true
-        #expect(try keychain.fetch(matching: query).map(\.account) == ["open"])
+        #expect(try keychain.fetch(matching: passwords, skippingItemsRequiringAuthentication: true).map(\.account) == ["open"])
     }
 
     @Test func allWithoutInteractionIsRefused() throws {

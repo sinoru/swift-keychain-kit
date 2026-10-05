@@ -22,13 +22,6 @@ public struct Query<Class: ItemClass>: Hashable, Sendable {
     /// option, `kSecAttrSynchronizableAny`, is not a boolean.
     public var synchronizable: SynchronizableMatch = .nonSynchronizableOnly
 
-    /// Skip items that would prompt the user for authentication (`kSecUseAuthenticationUISkip`).
-    ///
-    /// Applies to searches only. The framework accepts the option solely for
-    /// `SecItemCopyMatching` and rejects an update or delete that carries it with `errSecParam`,
-    /// so the library leaves it out of those two calls.
-    public var skipsItemsRequiringAuthentication = false
-
     /// Restrict the search to the item a persistent reference points at.
     public var persistentReference: PersistentReference?
 

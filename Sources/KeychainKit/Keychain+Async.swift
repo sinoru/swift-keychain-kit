@@ -40,81 +40,114 @@ extension Keychain {
     }
     #endif
 
-    /// The asynchronous form of ``fetchFirst(matching:)`` for the password classes.
+    /// The asynchronous form of ``fetchFirst(matching:skippingItemsRequiringAuthentication:)`` for the password classes.
     @concurrent
-    public func fetchFirst<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Item<Class>? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> Item<Class>? = fetchFirst(matching:)
-        return try synchronous(query)
+    public func fetchFirst<Class: PasswordItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> Item<Class>? {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> Item<Class>? = fetchFirst(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
-    /// The asynchronous form of ``fetchFirst(matching:)`` for keys, certificates, and identities.
+    /// The asynchronous form of ``fetchFirst(matching:skippingItemsRequiringAuthentication:)`` for keys, certificates, and identities.
     @concurrent
-    public func fetchFirst<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Item<Class>? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> Item<Class>? = fetchFirst(matching:)
-        return try synchronous(query)
+    public func fetchFirst<Class: ReferenceItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> Item<Class>? {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> Item<Class>? = fetchFirst(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
-    /// The asynchronous form of ``fetchFirstAttributes(matching:)``.
+    /// The asynchronous form of ``fetchFirstAttributes(matching:skippingItemsRequiringAuthentication:)``.
     @concurrent
-    public func fetchFirstAttributes<Class>(matching query: Query<Class>) async throws(KeychainError) -> Attributes<Class>? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> Attributes<Class>? = fetchFirstAttributes(matching:)
-        return try synchronous(query)
+    public func fetchFirstAttributes<Class>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> Attributes<Class>? {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> Attributes<Class>? = fetchFirstAttributes(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
-    /// The asynchronous form of ``fetchFirstData(matching:)``.
+    /// The asynchronous form of ``fetchFirstData(matching:skippingItemsRequiringAuthentication:)``.
     @concurrent
-    public func fetchFirstData<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Data? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> Data? = fetchFirstData(matching:)
-        return try synchronous(query)
+    public func fetchFirstData<Class: PasswordItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> Data? {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> Data? = fetchFirstData(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
-    /// The asynchronous form of ``fetchFirstReference(matching:)``.
+    /// The asynchronous form of ``fetchFirstReference(matching:skippingItemsRequiringAuthentication:)``.
     @concurrent
-    public func fetchFirstReference<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> Class.Reference? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> Class.Reference? = fetchFirstReference(matching:)
-        return try synchronous(query)
+    public func fetchFirstReference<Class: ReferenceItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> Class.Reference? {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> Class.Reference? = fetchFirstReference(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
-    /// The asynchronous form of ``fetchFirstPersistentReference(matching:)``.
+    /// The asynchronous form of ``fetchFirstPersistentReference(matching:skippingItemsRequiringAuthentication:)``.
     @concurrent
-    public func fetchFirstPersistentReference<Class>(matching query: Query<Class>) async throws(KeychainError) -> PersistentReference? {
-        let synchronous: (Query<Class>) throws(KeychainError) -> PersistentReference? = fetchFirstPersistentReference(matching:)
-        return try synchronous(query)
+    public func fetchFirstPersistentReference<Class>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> PersistentReference? {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> PersistentReference? = fetchFirstPersistentReference(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
-    /// The asynchronous form of ``fetch(matching:)`` for the password classes.
+    /// The asynchronous form of ``fetch(matching:skippingItemsRequiringAuthentication:)`` for the password classes.
     @concurrent
-    public func fetch<Class: PasswordItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Item<Class>] {
-        let synchronous: (Query<Class>) throws(KeychainError) -> [Item<Class>] = fetch(matching:)
-        return try synchronous(query)
+    public func fetch<Class: PasswordItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> [Item<Class>] {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> [Item<Class>] = fetch(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
-    /// The asynchronous form of ``fetch(matching:)`` for keys, certificates, and identities.
+    /// The asynchronous form of ``fetch(matching:skippingItemsRequiringAuthentication:)`` for keys, certificates, and identities.
     @concurrent
-    public func fetch<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Item<Class>] {
-        let synchronous: (Query<Class>) throws(KeychainError) -> [Item<Class>] = fetch(matching:)
-        return try synchronous(query)
+    public func fetch<Class: ReferenceItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> [Item<Class>] {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> [Item<Class>] = fetch(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
-    /// The asynchronous form of ``fetchAttributes(matching:)``.
+    /// The asynchronous form of ``fetchAttributes(matching:skippingItemsRequiringAuthentication:)``.
     @concurrent
-    public func fetchAttributes<Class>(matching query: Query<Class>) async throws(KeychainError) -> [Attributes<Class>] {
-        let synchronous: (Query<Class>) throws(KeychainError) -> [Attributes<Class>] = fetchAttributes(matching:)
-        return try synchronous(query)
+    public func fetchAttributes<Class>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> [Attributes<Class>] {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> [Attributes<Class>] = fetchAttributes(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
-    /// The asynchronous form of ``fetchReferences(matching:)``.
+    /// The asynchronous form of ``fetchReferences(matching:skippingItemsRequiringAuthentication:)``.
     @concurrent
-    public func fetchReferences<Class: ReferenceItemClass>(matching query: Query<Class>) async throws(KeychainError) -> [Class.Reference] {
-        let synchronous: (Query<Class>) throws(KeychainError) -> [Class.Reference] = fetchReferences(matching:)
-        return try synchronous(query)
+    public func fetchReferences<Class: ReferenceItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> [Class.Reference] {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> [Class.Reference] = fetchReferences(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
-    /// The asynchronous form of ``fetchPersistentReferences(matching:)``.
+    /// The asynchronous form of ``fetchPersistentReferences(matching:skippingItemsRequiringAuthentication:)``.
     @concurrent
-    public func fetchPersistentReferences<Class>(matching query: Query<Class>) async throws(KeychainError) -> [PersistentReference] {
-        let synchronous: (Query<Class>) throws(KeychainError) -> [PersistentReference] = fetchPersistentReferences(matching:)
-        return try synchronous(query)
+    public func fetchPersistentReferences<Class>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) async throws(KeychainError) -> [PersistentReference] {
+        let synchronous: (Query<Class>, Bool) throws(KeychainError) -> [PersistentReference] = fetchPersistentReferences(matching:skippingItemsRequiringAuthentication:)
+        return try synchronous(query, skippingItemsRequiringAuthentication)
     }
 
     #if canImport(LocalAuthentication) && !os(tvOS)

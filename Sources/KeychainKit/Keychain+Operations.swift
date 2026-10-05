@@ -42,16 +42,27 @@ extension Keychain {
     // MARK: Read
 
     /// The first matching item with its attributes and data, or `nil` when nothing matches.
-    public func fetchFirst<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> Item<Class>? {
-        guard let value = try copyMatching(query, returning: [.attributes, .data], all: false) else {
+    ///
+    /// Here and in every other read operation, `skippingItemsRequiringAuthentication` leaves out
+    /// the items that would prompt the user for authentication (`kSecUseAuthenticationUISkip`).
+    /// The framework accepts the option solely for `SecItemCopyMatching`, so update and delete
+    /// have no such parameter.
+    public func fetchFirst<Class: PasswordItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> Item<Class>? {
+        guard let value = try copyMatching(query, returning: [.attributes, .data], all: false, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return nil
         }
         return try Self.item(from: value)
     }
 
     /// The first matching item with its attributes and reference, or `nil` when nothing matches.
-    public func fetchFirst<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> Item<Class>? {
-        guard let value = try copyMatching(query, returning: [.attributes, .reference], all: false) else {
+    public func fetchFirst<Class: ReferenceItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> Item<Class>? {
+        guard let value = try copyMatching(query, returning: [.attributes, .reference], all: false, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return nil
         }
         return try Self.item(from: value)
@@ -61,32 +72,44 @@ extension Keychain {
     ///
     /// An item protected by an access control object authenticates for its attributes as it
     /// does for its data (measured on an iPad with a passcode, iOS 27).
-    public func fetchFirstAttributes<Class>(matching query: Query<Class>) throws(KeychainError) -> Attributes<Class>? {
-        guard let value = try copyMatching(query, returning: .attributes, all: false) else {
+    public func fetchFirstAttributes<Class>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> Attributes<Class>? {
+        guard let value = try copyMatching(query, returning: .attributes, all: false, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return nil
         }
         return try Self.attributes(from: value)
     }
 
     /// The data of the first matching item, or `nil` when nothing matches.
-    public func fetchFirstData<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> Data? {
-        guard let value = try copyMatching(query, returning: .data, all: false) else {
+    public func fetchFirstData<Class: PasswordItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> Data? {
+        guard let value = try copyMatching(query, returning: .data, all: false, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return nil
         }
         return try Self.data(from: value)
     }
 
     /// The reference of the first matching item, or `nil` when nothing matches.
-    public func fetchFirstReference<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> Class.Reference? {
-        guard let value = try copyMatching(query, returning: .reference, all: false) else {
+    public func fetchFirstReference<Class: ReferenceItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> Class.Reference? {
+        guard let value = try copyMatching(query, returning: .reference, all: false, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return nil
         }
         return try Self.reference(from: value)
     }
 
     /// The persistent reference of the first matching item, or `nil` when nothing matches.
-    public func fetchFirstPersistentReference<Class>(matching query: Query<Class>) throws(KeychainError) -> PersistentReference? {
-        guard let value = try copyMatching(query, returning: .persistentReference, all: false) else {
+    public func fetchFirstPersistentReference<Class>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> PersistentReference? {
+        guard let value = try copyMatching(query, returning: .persistentReference, all: false, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return nil
         }
         return try Self.persistentReference(from: value)
@@ -95,7 +118,7 @@ extension Keychain {
     /// Every matching item with its attributes and data.
     ///
     /// The data protection keychain returns all of it in one call. An item that requires
-    /// authentication is left out when the query skips such items; otherwise it makes the whole
+    /// authentication is left out when the fetch skips such items; otherwise it makes the whole
     /// call authenticate, or fail with `interactionNotAllowed` when the query's context forbids
     /// a prompt (measured on an iPad with a passcode, iOS 27).
     ///
@@ -105,13 +128,16 @@ extension Keychain {
     /// rather than returned without data.
     ///
     /// Use `fetchAttributes(matching:)` when the data is not needed.
-    public func fetch<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
+    public func fetch<Class: PasswordItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> [Item<Class>] {
         #if os(macOS)
         if case .fileBased = storage {
-            return try fetchWithDataPerItem(matching: query)
+            return try fetchWithDataPerItem(matching: query, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication)
         }
         #endif
-        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .data], all: true) else {
+        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .data], all: true, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return []
         }
         var items: [Item<Class>] = []
@@ -124,15 +150,22 @@ extension Keychain {
 
     #if os(macOS)
     /// `fetch(matching:)` for the file-based keychain: one search, then one data fetch per item.
-    private func fetchWithDataPerItem<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
-        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .persistentReference], all: true) else {
+    private func fetchWithDataPerItem<Class: PasswordItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool,
+    ) throws(KeychainError) -> [Item<Class>] {
+        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .persistentReference], all: true, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return []
         }
         var items: [Item<Class>] = []
         items.reserveCapacity(values.count)
         for value in values {
             let (attributes, reference) = try Self.attributesAndReference(from: value) as (Attributes<Class>, PersistentReference)
-            guard let data = try fetchFirstData(matching: dataQuery(for: reference, inheriting: query)) else {
+            let data = try fetchFirstData(
+                matching: dataQuery(for: reference, inheriting: query),
+                skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication,
+            )
+            guard let data else {
                 continue
             }
             items.append(Item(attributes: attributes, data: data))
@@ -142,8 +175,11 @@ extension Keychain {
     #endif
 
     /// Every matching item with its attributes and reference, in one call.
-    public func fetch<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
-        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .reference], all: true) else {
+    public func fetch<Class: ReferenceItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> [Item<Class>] {
+        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .reference], all: true, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return []
         }
         var items: [Item<Class>] = []
@@ -155,8 +191,11 @@ extension Keychain {
     }
 
     /// The attributes of every matching item, in one call.
-    public func fetchAttributes<Class>(matching query: Query<Class>) throws(KeychainError) -> [Attributes<Class>] {
-        guard case .array(let values)? = try copyMatching(query, returning: .attributes, all: true) else {
+    public func fetchAttributes<Class>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> [Attributes<Class>] {
+        guard case .array(let values)? = try copyMatching(query, returning: .attributes, all: true, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return []
         }
         var attributes: [Attributes<Class>] = []
@@ -168,8 +207,11 @@ extension Keychain {
     }
 
     /// The references of every matching item, in one call.
-    public func fetchReferences<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Class.Reference] {
-        guard case .array(let values)? = try copyMatching(query, returning: .reference, all: true) else {
+    public func fetchReferences<Class: ReferenceItemClass>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> [Class.Reference] {
+        guard case .array(let values)? = try copyMatching(query, returning: .reference, all: true, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return []
         }
         var references: [Class.Reference] = []
@@ -181,8 +223,11 @@ extension Keychain {
     }
 
     /// The persistent references of every matching item, in one call.
-    public func fetchPersistentReferences<Class>(matching query: Query<Class>) throws(KeychainError) -> [PersistentReference] {
-        guard case .array(let values)? = try copyMatching(query, returning: .persistentReference, all: true) else {
+    public func fetchPersistentReferences<Class>(
+        matching query: Query<Class>,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) throws(KeychainError) -> [PersistentReference] {
+        guard case .array(let values)? = try copyMatching(query, returning: .persistentReference, all: true, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return []
         }
         var references: [PersistentReference] = []
@@ -230,8 +275,18 @@ extension Keychain {
     }
 
     /// Runs a search, returning `nil` instead of throwing when nothing matches.
-    private func copyMatching<Class>(_ query: Query<Class>, returning keys: ResultKeys, all: Bool) throws(KeychainError) -> SecValue? {
-        let request = requestDictionary(for: query, returning: keys, all: all)
+    private func copyMatching<Class>(
+        _ query: Query<Class>,
+        returning keys: ResultKeys,
+        all: Bool,
+        skippingItemsRequiringAuthentication: Bool,
+    ) throws(KeychainError) -> SecValue? {
+        let request = requestDictionary(
+            for: query,
+            returning: keys,
+            all: all,
+            skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication,
+        )
         try storage.validate(request)
         do {
             return try Self.secItemCopyMatching(request)
@@ -292,10 +347,15 @@ extension Keychain {
     /// The dictionary for `SecItemCopyMatching`.
     ///
     /// This is the only call that accepts `kSecUseAuthenticationUISkip`; update and delete
-    /// reject it with `errSecParam`, so it is added here rather than in the query itself.
-    package func requestDictionary<Class>(for query: Query<Class>, returning keys: ResultKeys, all: Bool) -> SecDictionary {
+    /// reject it with `errSecParam`, so it is an argument here rather than part of the query.
+    package func requestDictionary<Class>(
+        for query: Query<Class>,
+        returning keys: ResultKeys,
+        all: Bool,
+        skippingItemsRequiringAuthentication: Bool = false,
+    ) -> SecDictionary {
         var dictionary = baseDictionary(for: query)
-        if query.skipsItemsRequiringAuthentication {
+        if skippingItemsRequiringAuthentication {
             dictionary[.useAuthenticationUI] = .useAuthenticationUISkip
         }
         if keys.contains(.data) {
@@ -358,7 +418,7 @@ extension Keychain {
     /// persistent reference.
     ///
     /// It matches synchronizable items too and inherits the original query's authentication
-    /// settings. It names no access group: the reference identifies the item whatever group it
+    /// context. It names no access group: the reference identifies the item whatever group it
     /// is in.
     package func dataQuery<Class>(
         for reference: PersistentReference,
@@ -367,7 +427,6 @@ extension Keychain {
         var query = Query<Class>()
         query.persistentReference = reference
         query.synchronizable = .any
-        query.skipsItemsRequiringAuthentication = original.skipsItemsRequiringAuthentication
         #if canImport(LocalAuthentication)
         query.authenticationContext = original.authenticationContext
         #endif

@@ -92,12 +92,11 @@ import Testing
     }
 
     @Test func skipFlagReachesSearchesButNotMutations() {
-        var skipping = query
-        skipping.skipsItemsRequiringAuthentication = true
         let keychain = Keychain()
-        #expect(keychain.requestDictionary(for: skipping, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationUI)] == .string(kSecUseAuthenticationUISkip as String))
+        let skipping = keychain.requestDictionary(for: query, returning: .data, all: false, skippingItemsRequiringAuthentication: true)
+        #expect(skipping[SecItemKey(kSecUseAuthenticationUI)] == .string(kSecUseAuthenticationUISkip as String))
         #expect(keychain.requestDictionary(for: query, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationUI)] == nil)
-        #expect(keychain.dictionary(for: skipping)[SecItemKey(kSecUseAuthenticationUI)] == nil)
+        #expect(keychain.dictionary(for: query)[SecItemKey(kSecUseAuthenticationUI)] == nil)
     }
 
     /// The data protection keychain rejects a match limit in an update or delete, while the
@@ -116,15 +115,10 @@ import Testing
     #if os(macOS)
     /// The file-based keychain's second step names the item by reference, whatever its group
     /// and whether or not it synchronizes.
-    @Test func dataQueryNamesTheItemByReferenceAndInheritsTheSkipFlag() {
+    @Test func dataQueryNamesTheItemByReference() {
         let keychain = Keychain(storage: .fileBased())
-        var skipping = query
-        skipping.skipsItemsRequiringAuthentication = true
         let reference = PersistentReference(rawValue: Data([7]))
-        #expect(keychain.dataQuery(for: reference, inheriting: skipping).skipsItemsRequiringAuthentication)
-
         let dataQuery = keychain.dataQuery(for: reference, inheriting: query)
-        #expect(!dataQuery.skipsItemsRequiringAuthentication)
         #expect(dataQuery.persistentReference == reference)
         #expect(dataQuery.synchronizable == .any)
         #expect(dataQuery.accessGroup == nil)

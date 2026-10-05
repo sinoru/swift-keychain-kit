@@ -44,13 +44,6 @@ import Testing
         #expect(query.secDictionary[SecItemKey(kSecAttrSynchronizable)] == .string(kSecAttrSynchronizableAny as String))
     }
 
-    @Test func skipFlagStaysOutOfTheQueryDictionary() {
-        // The flag is search-only, so `Keychain.requestDictionary` adds it; see KeychainRequestTests.
-        var query = Query<GenericPassword>()
-        query.skipsItemsRequiringAuthentication = true
-        #expect(query.secDictionary[SecItemKey(kSecUseAuthenticationUI)] == nil)
-    }
-
     @Test func carriesAPersistentReference() {
         var query = Query<GenericPassword>()
         query.persistentReference = PersistentReference(rawValue: Data([9, 9]))
