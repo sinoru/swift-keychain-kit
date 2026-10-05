@@ -22,7 +22,9 @@ extension Keychain {
         _ item: Item<Class>,
         authenticationContext: AuthenticationContext? = nil,
     ) throws(KeychainError) -> PersistentReference {
-        try Self.persistentReference(fromAdd: Self.secItemAdd(addDictionary(for: item, authenticationContext: authenticationContext)))
+        let attributes = addDictionary(for: item, authenticationContext: authenticationContext)
+        try storage.validate(attributes)
+        return try Self.persistentReference(fromAdd: Self.secItemAdd(attributes))
     }
     #else
     /// Adds an item and returns its persistent reference.
@@ -31,7 +33,9 @@ extension Keychain {
     /// Fails with `duplicateItem` when an item with the same primary key exists.
     @discardableResult
     public func add<Class>(_ item: Item<Class>) throws(KeychainError) -> PersistentReference {
-        try Self.persistentReference(fromAdd: Self.secItemAdd(addDictionary(for: item)))
+        let attributes = addDictionary(for: item)
+        try storage.validate(attributes)
+        return try Self.persistentReference(fromAdd: Self.secItemAdd(attributes))
     }
     #endif
 
@@ -203,15 +207,21 @@ extension Keychain {
     /// update even when their values are unchanged; there, pass an item holding only the
     /// attributes to change.
     public func update<Class>(matching query: Query<Class>, with changes: Item<Class>) throws(KeychainError) {
-        try Self.secItemUpdate(dictionary(for: query), with: Self.updateDictionary(for: changes))
+        let request = dictionary(for: query)
+        let attributes = Self.updateDictionary(for: changes)
+        try storage.validate(request)
+        try storage.validate(attributes)
+        try Self.secItemUpdate(request, with: attributes)
     }
 
     // MARK: Delete
 
     /// Deletes every matching item. Nothing matching is not an error.
     public func delete<Class>(matching query: Query<Class>) throws(KeychainError) {
+        let request = dictionary(for: query)
+        try storage.validate(request)
         do {
-            try Self.secItemDelete(dictionary(for: query))
+            try Self.secItemDelete(request)
         } catch {
             guard error.code == .itemNotFound else {
                 throw error
@@ -221,8 +231,10 @@ extension Keychain {
 
     /// Runs a search, returning `nil` instead of throwing when nothing matches.
     private func fetch<Class>(_ query: Query<Class>, returning keys: ResultKeys, all: Bool) throws(KeychainError) -> SecValue? {
+        let request = requestDictionary(for: query, returning: keys, all: all)
+        try storage.validate(request)
         do {
-            return try Self.secItemCopyMatching(requestDictionary(for: query, returning: keys, all: all))
+            return try Self.secItemCopyMatching(request)
         } catch {
             guard error.code == .itemNotFound else {
                 throw error
@@ -380,6 +392,10 @@ extension Keychain {
             }
         #if os(macOS)
         case .fileBased(let keychain):
+            // Without the key the framework reaches both keychains: a search, update, or
+            // delete also acts on the data protection keychain, and an add goes there when its
+            // attributes cannot live here (Security sources, `SecItemCategorizeQuery`).
+            dictionary[.useDataProtectionKeychain] = .bool(false)
             if let keychain {
                 let reference = SecValue.object(SecObject(keychain.reference))
                 if forAdding {

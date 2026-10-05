@@ -125,8 +125,10 @@ let daemonKeychain = Keychain(storage: .fileBased())
 #endif
 ```
 
-Access groups, accessibility levels, and access control objects do not apply to the
-file-based keychain. It also treats keys and identities differently; see
+Calls made through it stay in the file-based keychain. Access groups and accessibility levels
+do not apply there and are ignored, while an access control object, a token such as the
+Secure Enclave, a synchronizable item, and the `token` access group fail with
+``KeychainError/Code/invalidParameter``. It also treats keys and identities differently; see
 <doc:KeysCertificatesAndIdentities>.
 
 ### Handle errors

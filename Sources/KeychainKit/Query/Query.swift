@@ -49,8 +49,7 @@ public struct Query<Class: ItemClass>: Hashable, Sendable {
         dictionary[.itemClass] = .string(Class.secClass)
         switch synchronizable {
         case .nonSynchronizableOnly:
-            // Absent is the framework's default and, on macOS, keeps the query off the
-            // data protection keychain unless asked for otherwise.
+            // Absent is the framework's default.
             dictionary[.synchronizable] = nil
         case .synchronizableOnly:
             dictionary[.synchronizable] = .bool(true)

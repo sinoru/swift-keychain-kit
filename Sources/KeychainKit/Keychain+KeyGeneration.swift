@@ -22,12 +22,14 @@ extension Keychain {
         attributes: Attributes<CryptographicKey> = Attributes(),
         authenticationContext: AuthenticationContext? = nil,
     ) throws(KeychainError) -> KeyReference {
-        try KeyReference(generatingWith: generationDictionary(
+        let parameters = generationDictionary(
             for: keyType,
             sizeInBits: sizeInBits,
             attributes: attributes,
             authenticationContext: authenticationContext,
-        ))
+        )
+        try storage.validate(parameters)
+        return try KeyReference(generatingWith: parameters)
     }
     #else
     /// Generates a private key and stores it in the keychain (`SecKeyCreateRandomKey`).
@@ -40,7 +42,9 @@ extension Keychain {
         sizeInBits: Int,
         attributes: Attributes<CryptographicKey> = Attributes(),
     ) throws(KeychainError) -> KeyReference {
-        try KeyReference(generatingWith: generationDictionary(for: keyType, sizeInBits: sizeInBits, attributes: attributes))
+        let parameters = generationDictionary(for: keyType, sizeInBits: sizeInBits, attributes: attributes)
+        try storage.validate(parameters)
+        return try KeyReference(generatingWith: parameters)
     }
     #endif
 
@@ -172,6 +176,9 @@ extension Keychain {
             dictionary[.useDataProtectionKeychain] = .bool(true)
         #if os(macOS)
         case .fileBased(let keychain):
+            // Without the key the framework generates the key in the data protection keychain
+            // when its attributes cannot live here (Security sources, `SecKey.cpp`).
+            dictionary[.useDataProtectionKeychain] = .bool(false)
             if let keychain {
                 dictionary[.useKeychain] = .object(SecObject(keychain.reference))
             }

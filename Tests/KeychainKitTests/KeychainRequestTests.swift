@@ -148,7 +148,7 @@ import Testing
         let keychain = Keychain(storage: .fileBased(temporary.fileKeychain))
 
         let add = keychain.addDictionary(for: Item<GenericPassword>(data: Data()))
-        #expect(add[SecItemKey(kSecUseDataProtectionKeychain)] == nil)
+        #expect(add[SecItemKey(kSecUseDataProtectionKeychain)] == .bool(false))
         guard case .object(let used)? = add[SecItemKey(kSecUseKeychain)] else {
             Issue.record("expected kSecUseKeychain")
             return
@@ -165,10 +165,78 @@ import Testing
         #expect(search[SecItemKey(kSecMatchItemList)] == .array([.data(Data([9]))]))
     }
 
-    @Test func defaultFileBasedStorageAddsNoStorageKeys() {
-        let dictionary = Keychain(storage: .fileBased()).dictionary(for: query)
-        #expect(dictionary[SecItemKey(kSecUseDataProtectionKeychain)] == nil)
-        #expect(dictionary[SecItemKey(kSecMatchSearchList)] == nil)
+    /// Without the key the framework would reach both keychains.
+    @Test func fileBasedStorageTurnsTheDataProtectionKeychainOffOnEveryCall() {
+        let keychain = Keychain(storage: .fileBased())
+        let dictionaries = [
+            keychain.addDictionary(for: Item<GenericPassword>(data: Data())),
+            keychain.requestDictionary(for: query, returning: .data, all: false),
+            keychain.dictionary(for: query),
+            keychain.generationDictionary(for: .ecSECPrimeRandom, sizeInBits: 256, attributes: Attributes()),
+        ]
+        #expect(dictionaries.allSatisfy { $0[SecItemKey(kSecUseDataProtectionKeychain)] == .bool(false) })
+        #expect(dictionaries.allSatisfy { $0[SecItemKey(kSecMatchSearchList)] == nil && $0[SecItemKey(kSecUseKeychain)] == nil })
+    }
+
+    /// The framework would drop these on the way to the file-based keychain rather than refuse them.
+    @Test func fileBasedStorageRejectsWhatOnlyTheDataProtectionKeychainHas() throws {
+        let keychain = Keychain(storage: .fileBased())
+        let invalidParameter = KeychainError(code: .invalidParameter)
+
+        var synchronizable = Item<GenericPassword>(data: Data())
+        synchronizable.attributes.synchronizable = true
+        #expect(throws: invalidParameter) { try keychain.storage.validate(keychain.addDictionary(for: synchronizable)) }
+        #expect(throws: invalidParameter) { try keychain.storage.validate(Keychain.updateDictionary(for: synchronizable)) }
+
+        var synchronizableOnly = query
+        synchronizableOnly.synchronizable = .synchronizableOnly
+        #expect(throws: invalidParameter) { try keychain.storage.validate(keychain.dictionary(for: synchronizableOnly)) }
+
+        var protected = Item<GenericPassword>(data: Data())
+        protected.attributes.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked, flags: .userPresence))
+        #expect(throws: invalidParameter) { try keychain.storage.validate(keychain.addDictionary(for: protected)) }
+
+        var tokenGroup = query
+        tokenGroup.accessGroup = .token
+        #expect(throws: invalidParameter) { try keychain.storage.validate(keychain.dictionary(for: tokenGroup)) }
+        let tokenKeychain = Keychain(storage: .fileBased(), accessGroup: .token)
+        #expect(throws: invalidParameter) { try tokenKeychain.storage.validate(tokenKeychain.dictionary(for: query)) }
+
+        let secureEnclave = try Keychain.secureEnclaveKeyAttributes(
+            applicationTag: nil,
+            label: nil,
+            accessGroup: nil,
+            accessibility: .whenUnlockedThisDeviceOnly,
+            constraints: [],
+        )
+        #expect(throws: invalidParameter) {
+            try keychain.storage.validate(keychain.generationDictionary(for: .ecSECPrimeRandom, sizeInBits: 256, attributes: secureEnclave))
+        }
+        var protectedKey = Attributes<CryptographicKey>()
+        protectedKey.protection = protected.attributes.protection
+        #expect(throws: invalidParameter) {
+            try keychain.storage.validate(keychain.generationDictionary(for: .ecSECPrimeRandom, sizeInBits: 256, attributes: protectedKey))
+        }
+    }
+
+    /// Access groups and accessibility are ignored there, and a search may match either kind of item.
+    @Test func fileBasedStorageAcceptsWhatItIgnores() throws {
+        let keychain = Keychain(storage: .fileBased(), accessGroup: AccessGroup(rawValue: "TEAM.default"))
+        var item = Item<GenericPassword>(data: Data())
+        item.attributes.protection = .accessible(.afterFirstUnlock)
+        item.attributes.synchronizable = false
+        #expect(throws: Never.self) { try keychain.storage.validate(keychain.addDictionary(for: item)) }
+
+        var any = query
+        any.synchronizable = .any
+        #expect(throws: Never.self) { try keychain.storage.validate(keychain.dictionary(for: any)) }
+    }
+
+    @Test func dataProtectionStorageAcceptsEveryDictionary() throws {
+        var item = Item<GenericPassword>(data: Data())
+        item.attributes.synchronizable = true
+        item.attributes.protection = .accessControl(try AccessControl(accessibility: .whenUnlocked, flags: .userPresence))
+        #expect(throws: Never.self) { try Storage.dataProtection.validate(Keychain().addDictionary(for: item)) }
     }
     #endif
 }
