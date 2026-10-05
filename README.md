@@ -126,8 +126,8 @@ if let identity = try keychain.reference(matching: Query<Identity>()) {
 }
 ```
 
-KeychainKit depends on nothing beyond the Security framework. A CryptoKit NIST key
-converts through its X9.63 representation, and a certificate through DER.
+KeychainKit does not depend on CryptoKit or on a certificate library. A CryptoKit NIST
+key converts through its X9.63 representation, and a certificate through DER.
 
 ### Swift concurrency
 
