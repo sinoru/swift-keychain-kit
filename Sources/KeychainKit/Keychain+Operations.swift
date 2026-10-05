@@ -43,7 +43,7 @@ extension Keychain {
         guard let value = try copyMatching(query, returning: [.attributes, .data], all: false, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return nil
         }
-        return try Self.item(from: value)
+        return try Self.item(from: consume value)
     }
 
     /// The first matching item with its attributes and reference, or `nil` when nothing matches.
@@ -55,7 +55,7 @@ extension Keychain {
         guard let value = try copyMatching(query, returning: [.attributes, .reference], all: false, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return nil
         }
-        return try Self.item(from: value)
+        return try Self.item(from: consume value)
     }
 
     /// The attributes of the first matching item, or `nil` when nothing matches.
@@ -70,7 +70,7 @@ extension Keychain {
         guard let value = try copyMatching(query, returning: .attributes, all: false, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return nil
         }
-        return try Self.attributes(from: value)
+        return try Self.attributes(from: consume value)
     }
 
     /// The data of the first matching item, or `nil` when nothing matches.
@@ -136,13 +136,13 @@ extension Keychain {
             )
         }
         #endif
-        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .data], all: true, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
+        guard case .array(var values)? = try copyMatching(query, returning: [.attributes, .data], all: true, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return []
         }
         var items: [Item<Class>] = []
         items.reserveCapacity(values.count)
-        for value in values {
-            items.append(try Self.item(from: value))
+        for index in values.indices {
+            items.append(try Self.item(from: values.take(at: index)))
         }
         return items
     }
@@ -154,13 +154,13 @@ extension Keychain {
         authenticationContext: AuthenticationContext?,
         skippingItemsRequiringAuthentication: Bool,
     ) throws(KeychainError) -> [Item<Class>] {
-        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .persistentReference], all: true, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
+        guard case .array(var values)? = try copyMatching(query, returning: [.attributes, .persistentReference], all: true, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return []
         }
         var items: [Item<Class>] = []
         items.reserveCapacity(values.count)
-        for value in values {
-            let (attributes, reference) = try Self.attributesAndReference(from: value) as (Attributes<Class>, PersistentReference)
+        for index in values.indices {
+            let (attributes, reference) = try Self.attributesAndReference(from: values.take(at: index)) as (Attributes<Class>, PersistentReference)
             let data = try fetchFirstData(
                 matching: dataQuery(for: reference) as Query<Class>,
                 authenticationContext: authenticationContext,
@@ -181,13 +181,13 @@ extension Keychain {
         authenticationContext: AuthenticationContext? = nil,
         skippingItemsRequiringAuthentication: Bool = false,
     ) throws(KeychainError) -> [Item<Class>] {
-        guard case .array(let values)? = try copyMatching(query, returning: [.attributes, .reference], all: true, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
+        guard case .array(var values)? = try copyMatching(query, returning: [.attributes, .reference], all: true, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return []
         }
         var items: [Item<Class>] = []
         items.reserveCapacity(values.count)
-        for value in values {
-            items.append(try Self.item(from: value))
+        for index in values.indices {
+            items.append(try Self.item(from: values.take(at: index)))
         }
         return items
     }
@@ -198,13 +198,13 @@ extension Keychain {
         authenticationContext: AuthenticationContext? = nil,
         skippingItemsRequiringAuthentication: Bool = false,
     ) throws(KeychainError) -> [Attributes<Class>] {
-        guard case .array(let values)? = try copyMatching(query, returning: .attributes, all: true, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
+        guard case .array(var values)? = try copyMatching(query, returning: .attributes, all: true, authenticationContext: authenticationContext, skippingItemsRequiringAuthentication: skippingItemsRequiringAuthentication) else {
             return []
         }
         var attributes: [Attributes<Class>] = []
         attributes.reserveCapacity(values.count)
-        for value in values {
-            attributes.append(try Self.attributes(from: value))
+        for index in values.indices {
+            attributes.append(try Self.attributes(from: values.take(at: index)))
         }
         return attributes
     }
@@ -489,31 +489,36 @@ extension Keychain {
 
 /// The other pure half: what comes back from the framework. A value of an unexpected shape is
 /// reported as `decodingFailed`.
+///
+/// A parser that turns a dictionary into attributes takes its value `consuming`: the attributes
+/// are that dictionary with the non-attribute keys removed, and a caller that gives up its
+/// reference lets them be removed in place rather than from a copy.
 extension Keychain {
-    package static func item<Class>(from value: SecValue) throws(KeychainError) -> Item<Class> {
-        guard case .dictionary(let dictionary) = value else {
+    package static func item<Class>(from value: consuming SecValue) throws(KeychainError) -> Item<Class> {
+        guard case .dictionary(var dictionary) = consume value else {
             throw KeychainError(code: .decodingFailed)
         }
-        var item = Item<Class>(attributes: Attributes(secDictionary: dictionary))
-        item.value = dictionary[.valueData] ?? dictionary[.valueRef]
+        let payload = dictionary.removeValue(forKey: .valueData) ?? dictionary.removeValue(forKey: .valueRef)
+        var item = Item<Class>(attributes: Attributes(secDictionary: consume dictionary))
+        item.value = payload
         return item
     }
 
-    package static func attributes<Class>(from value: SecValue) throws(KeychainError) -> Attributes<Class> {
-        guard case .dictionary(let dictionary) = value else {
+    package static func attributes<Class>(from value: consuming SecValue) throws(KeychainError) -> Attributes<Class> {
+        guard case .dictionary(let dictionary) = consume value else {
             throw KeychainError(code: .decodingFailed)
         }
         return Attributes(secDictionary: dictionary)
     }
 
     #if os(macOS)
-    package static func attributesAndReference<Class>(from value: SecValue) throws(KeychainError) -> (Attributes<Class>, PersistentReference) {
-        guard case .dictionary(var dictionary) = value,
+    package static func attributesAndReference<Class>(from value: consuming SecValue) throws(KeychainError) -> (Attributes<Class>, PersistentReference) {
+        guard case .dictionary(var dictionary) = consume value,
               case .data(let reference)? = dictionary.removeValue(forKey: .valuePersistentRef)
         else {
             throw KeychainError(code: .decodingFailed)
         }
-        return (Attributes(secDictionary: dictionary), PersistentReference(rawValue: reference))
+        return (Attributes(secDictionary: consume dictionary), PersistentReference(rawValue: reference))
     }
     #endif
 
@@ -550,5 +555,15 @@ extension Keychain {
         case nil:
             throw KeychainError(code: .decodingFailed)
         }
+    }
+}
+
+extension [SecValue] {
+    /// Takes out and returns the element at `index`, leaving a placeholder in its place, so
+    /// that the array no longer shares what the element stores with whoever receives it.
+    fileprivate mutating func take(at index: Int) -> SecValue {
+        var value = SecValue.bool(false)
+        swap(&value, &self[index])
+        return value
     }
 }
