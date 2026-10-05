@@ -15,6 +15,10 @@ public enum Protection: Hashable, Sendable {
     case accessible(Accessibility)
 
     /// `kSecAttrAccessControl`.
+    ///
+    /// Not for a synchronizable item: an access control next to `synchronizable` set to `true`
+    /// fails with `errSecParam` when the item is added, and when one update sets both, even if
+    /// the access control has no flags (measured on the iOS 27 simulator).
     case accessControl(AccessControl)
 
     /// The accessibility level, whichever form carries it.

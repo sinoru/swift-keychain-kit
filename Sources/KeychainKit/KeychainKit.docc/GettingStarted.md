@@ -91,6 +91,10 @@ let control = try AccessControl(accessibility: .whenUnlocked, flags: .userPresen
 item.attributes.protection = .accessControl(control)
 ```
 
+An item that syncs through iCloud Keychain cannot have an access control, even one with no
+flags: adding it fails with `errSecParam`. Give a synchronizable item an ``Accessibility``
+level instead.
+
 To read such an item without a second prompt, or to control the prompt, pass an
 ``AuthenticationContext``:
 

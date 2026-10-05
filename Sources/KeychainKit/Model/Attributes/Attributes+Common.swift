@@ -29,8 +29,13 @@ extension Attributes {
 
     /// `kSecAttrSynchronizable`: whether the item syncs through iCloud Keychain.
     /// 
-    /// Synchronizable items cannot use a `ThisDeviceOnly` accessibility. In a `Query`, the
-    /// `synchronizable` property of the query takes precedence over this attribute.
+    /// Synchronizable items cannot use a `ThisDeviceOnly` accessibility. Nor can one be given an
+    /// `AccessControl`, even one with no flags: adding the two together, or setting both in one
+    /// update, fails with `errSecParam` (measured on the iOS 27 simulator). Use
+    /// `Protection/accessible(_:)` for a synchronizable item.
+    ///
+    /// In a `Query`, the `synchronizable` property of the query takes precedence over this
+    /// attribute.
     public var synchronizable: Bool? {
         get { storage[.synchronizable]?.bool }
         set { storage[.synchronizable] = newValue.map(SecValue.bool) }
