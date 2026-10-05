@@ -251,6 +251,12 @@ extension Keychain {
     /// update presumes the item exists. Changing a primary-key attribute to collide with another
     /// item fails with `duplicateItem`.
     ///
+    /// An attribute left `nil` on `changes` is not touched. To clear one, set it to an empty
+    /// value. The file-based keychain on macOS then removes the attribute, so it reads back as
+    /// `nil`; the data protection keychain stores the empty value, and an attribute cannot be
+    /// returned to absent there (measured for a generic password on macOS 27 and the iOS 27
+    /// simulator).
+    ///
     /// A reference on `changes` is left out: an update cannot replace the key or certificate an
     /// item is. That lets an item that was read be changed and passed back as is. The exception
     /// is a key in the file-based keychain on macOS, which rejects most key attributes in an
