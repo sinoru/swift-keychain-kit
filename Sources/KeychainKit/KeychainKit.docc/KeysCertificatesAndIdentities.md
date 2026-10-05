@@ -156,6 +156,9 @@ let reference = try KeyReference(
 let roundTripped = try P256.Signing.PrivateKey(x963Representation: reference.externalRepresentation())
 ```
 
+[Swift Crypto](https://github.com/apple/swift-crypto) re-exports CryptoKit on Apple
+platforms, so the same conversion serves code that imports `Crypto` instead.
+
 CryptoKit keys without an X9.63 form, such as `Curve25519` keys and `SymmetricKey`, are
 not key items. Apple's guidance is to store their raw representation as a generic
 password, which `Item(service:account:data:)` does.
@@ -180,6 +183,30 @@ let certifiedKey = stored?.reference?.publicKey    // KeyReference?
 
 The name and serial number attributes are DER-encoded bytes. KeychainKit does not parse
 certificates or evaluate trust.
+
+DER is also what connects a certificate to a library that does parse them.
+[Swift Certificates](https://github.com/apple/swift-certificates) reads a certificate from
+its DER bytes and serializes one back to them:
+
+```swift
+import SwiftASN1
+import X509
+
+let parsed = try X509.Certificate(derEncoded: Array(certificate.derRepresentation))
+let subject = parsed.subject.description   // "CN=Example,O=Example Inc.,C=US"
+
+var serializer = DER.Serializer()
+try serializer.serialize(parsed)
+let reference = CertificateReference(derRepresentation: Data(serializer.serializedBytes))
+```
+
+A key in the keychain can sign a certificate that library creates, without leaving the
+keychain: on Apple platforms its `Certificate.PrivateKey` wraps a `SecKey`, which is what
+``KeyReference`` holds as `reference`.
+
+```swift
+let issuerPrivateKey = try X509.Certificate.PrivateKey(key.reference)
+```
 
 ### Use an identity
 

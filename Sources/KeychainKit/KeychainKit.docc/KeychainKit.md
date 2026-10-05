@@ -39,7 +39,7 @@ let item = try await keychain.fetchFirst(matching: Query(service: "com.example.a
 - ``Keychain``
 - ``KeychainError``
 
-### Items and attributes
+### Items and Attributes
 
 - ``Item``
 - ``Attributes``
@@ -54,7 +54,7 @@ let item = try await keychain.fetchFirst(matching: Query(service: "com.example.a
 - ``InternetProtocol``
 - ``AuthenticationType``
 
-### Keys, certificates, and identities
+### Keys, Certificates, and Identities
 
 - ``ReferenceItemClass``
 - ``KeyItemClass``
@@ -72,24 +72,24 @@ let item = try await keychain.fetchFirst(matching: Query(service: "com.example.a
 - ``CertificateType``
 - ``CertificateEncoding``
 
-### Key operations
+### Key Operations
 
 - ``KeyAlgorithm``
 - ``KeyOperation``
 
-### Finding items
+### Finding Items
 
 - ``Query``
 - ``SynchronizableMatch``
 
-### Protecting items
+### Protecting Items
 
 - ``Protection``
 - ``Accessibility``
 - ``AccessControl``
 - ``AuthenticationContext``
 
-### Storage and sharing
+### Storage and Sharing
 
 - ``Storage``
 - ``FileKeychain``

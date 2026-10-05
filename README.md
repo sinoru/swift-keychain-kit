@@ -2,10 +2,16 @@
 
 [![GitHub Actions — Apple Platforms](https://github.com/sinoru/swift-keychain-kit/actions/workflows/apple-platforms.yml/badge.svg)](https://github.com/sinoru/swift-keychain-kit/actions/workflows/apple-platforms.yml)
 
+[![Swift Package Index — Swift Versions](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fsinoru%2Fswift-keychain-kit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/sinoru/swift-keychain-kit)
+[![Swift Package Index — Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fsinoru%2Fswift-keychain-kit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/sinoru/swift-keychain-kit)
+
 **KeychainKit** is a Swift interface to Apple's Keychain Services. It replaces the
 `CFDictionary`-of-`kSec*`-keys API with typed items, attributes, and queries; reports
 failures as a typed error that keeps the original `OSStatus`; and offers every operation
 in a synchronous form and an `async` form that stays off the caller's actor.
+
+The [API documentation](https://swiftpackageindex.com/sinoru/swift-keychain-kit/documentation/keychainkit)
+is hosted on the Swift Package Index.
 
 ```swift
 import KeychainKit
@@ -21,22 +27,19 @@ if let item = try keychain.fetchFirst(matching: Query(service: "com.example.app"
 
 ## Table of Contents
 
-* [Requirements](#requirements)
 * [Getting Started](#getting-started)
 * [Usage](#usage)
 * [Design](#design)
+* [Platform Support](#platform-support)
 * [Testing](#testing)
 * [Roadmap](#roadmap)
+* [Contributing](#contributing)
+* [Security](#security)
 * [License](#license)
-
-## Requirements
-
-* Swift 6.2 (Xcode 26) or later
-* macOS 12, iOS 15, tvOS 15, watchOS 9, or visionOS 1
 
 ## Getting Started
 
-Add the package to your `Package.swift` and `KeychainKit` to the target that uses it:
+Add the package to your `Package.swift`, and `KeychainKit` to the target that uses it:
 
 ```swift
 dependencies: [
@@ -126,8 +129,10 @@ if let identity = try keychain.fetchFirstReference(matching: Query<Identity>()) 
 }
 ```
 
-KeychainKit does not depend on CryptoKit or on a certificate library. A CryptoKit NIST
-key converts through its X9.63 representation, and a certificate through DER.
+KeychainKit does not depend on CryptoKit or on a certificate library. A NIST key of
+CryptoKit or [Swift Crypto](https://github.com/apple/swift-crypto) converts through its
+X9.63 representation, and a certificate of
+[Swift Certificates](https://github.com/apple/swift-certificates) through DER.
 
 ### Swift concurrency
 
@@ -166,8 +171,6 @@ let daemon = Keychain(storage: .fileBased())   // for code outside a user sessio
 #endif
 ```
 
-The full guide lives in the DocC catalog under `Sources/KeychainKit/KeychainKit.docc`.
-
 ## Design
 
 * **The framework's semantics, not a new model.** Primary keys, duplicate and not-found
@@ -183,6 +186,23 @@ The full guide lives in the DocC catalog under `Sources/KeychainKit/KeychainKit.
   serialize calls. Coordinating user-facing prompts is the caller's concern.
 * **Data protection by default.** `kSecUseDataProtectionKeychain` is set on every call so
   macOS behaves like the other platforms. The file-based keychain is opt-in and macOS only.
+
+## Platform Support
+
+The package supports macOS 12, iOS 15, Mac Catalyst, tvOS 15, watchOS 9, and visionOS 1 or
+later. It is for Apple platforms alone: Keychain Services is part of the Security framework,
+and no other platform has one. A package that also builds elsewhere depends on it under a
+platform condition:
+
+```swift
+.product(
+    name: "KeychainKit",
+    package: "swift-keychain-kit",
+    condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS])
+)
+```
+
+Building the package requires Swift 6.2 (Xcode 26) or later.
 
 ## Testing
 
@@ -205,6 +225,16 @@ swift test --sanitize=thread
 Open work is tracked in the [issues](https://github.com/sinoru/swift-keychain-kit/issues).
 Trust evaluation (`SecTrust`), certificate parsing, and passkeys are out of scope.
 
+## Contributing
+
+Bug reports, feature ideas, and pull requests are welcome on
+[GitHub](https://github.com/sinoru/swift-keychain-kit).
+
+## Security
+
+Report a vulnerability privately, as [SECURITY.md](SECURITY.md) describes, rather than in a
+public issue.
+
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+[Apache License 2.0](LICENSE)
