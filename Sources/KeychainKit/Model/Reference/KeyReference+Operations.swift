@@ -11,7 +11,8 @@ internal import Security
 
 // The functions of `SecKey.h`. Each reports failure through a `CFError` out-parameter that the
 // caller owns, which strict memory safety classifies as unsafe, hence the `unsafe` markers.
-// Security reports these failures in the `OSStatus` domain, so they surface as `KeychainError`.
+// Security reports these failures in the `OSStatus` domain, and a key that lives on a token in
+// the token's own, both of which surface as `KeychainError`.
 
 // MARK: - Creating keys
 

@@ -78,6 +78,7 @@ struct PasswordDataSearchIntegrationTests {
 }
 
 #if canImport(LocalAuthentication) && !os(tvOS) && !os(macOS) && !targetEnvironment(macCatalyst)
+import CryptoTokenKit
 import LocalAuthentication
 
 /// Whether this device enforces an access control that asks for the user.
@@ -272,6 +273,110 @@ struct ProtectedItemIntegrationTests {
             try search([SecItemKey(kSecReturnAttributes): .bool(true), SecItemKey(kSecReturnData): .bool(true)]
                 .merging(everyMatch) { _, new in new }
                 .merging(withoutInteraction) { _, new in new })
+        }
+    }
+}
+
+/// What a Secure Enclave key that asks for the user reports when the user does not answer.
+///
+/// An operation on such a key hands back the token's own error, not an `OSStatus`. Each test
+/// records the domain and code of that raw error next to the code `KeyReference` makes of it.
+/// Each generates a key under a tag of its own and removes it. Generating and deleting ask for
+/// nothing. Only `cancelledSignatureIsUserCanceled` shows a prompt, and it runs only when
+/// asked to.
+///
+/// Biometry that fails to match is not among them: the prompt keeps offering another try and
+/// ends only when the person cancels, which is the cancellation again (measured with Face ID
+/// on iPadOS 27).
+@Suite(.enabled(
+    if: DataProtectionKeychain.isReachable && DeviceAuthentication.isEnforced,
+    "A protected key needs a host app and a keychain that enforces its access control.",
+))
+struct ProtectedKeyIntegrationTests {
+    private let keychain = Keychain()
+    private let tag = Data(UUID().uuidString.utf8)
+    private let digest = Data(repeating: 0xAB, count: 32)
+
+    private var keys: Query<CryptographicKey> {
+        var query = Query<CryptographicKey>()
+        query.applicationTag = tag
+        return query
+    }
+
+    /// The domain and code of the error `SecKeyCreateSignature` reports for `key`, or `nil`
+    /// when it signs.
+    private func rawSignatureFailure(of key: KeyReference) -> RawFailure? {
+        var error: Unmanaged<CFError>?
+        let signature = unsafe SecKeyCreateSignature(
+            key.reference,
+            .ecdsaSignatureDigestX962SHA256,
+            digest as CFData,
+            &error,
+        )
+        guard signature == nil, let failure = unsafe error?.takeRetainedValue() else {
+            return nil
+        }
+        return RawFailure(domain: CFErrorGetDomain(failure) as String, code: CFErrorGetCode(failure))
+    }
+
+    private struct RawFailure: Equatable {
+        var domain: String
+        var code: Int
+    }
+
+    @Test func signatureWithoutInteractionIsRefused() throws {
+        defer { try? keychain.delete(matching: keys) }
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        let key = try keychain.generateSecureEnclaveKey(
+            applicationTag: tag,
+            constraints: .userPresence,
+            authenticationContext: AuthenticationContext(context),
+        )
+
+        #expect(rawSignatureFailure(of: key) == RawFailure(domain: LAErrorDomain, code: LAError.Code.notInteractive.rawValue))
+        #expect(throws: KeychainError(code: .interactionNotAllowed)) {
+            try key.signature(for: digest, using: .ecdsaSignatureDigestX962SHA256)
+        }
+    }
+
+    /// Cancel both times the device asks.
+    ///
+    /// The key asks for the passcode alone: biometry matches the person holding the device
+    /// before they can cancel.
+    @Test(.enabled(if: AuthenticationPrompt.isAllowed, "Set KEYCHAINKIT_ALLOW_PROMPT to answer a prompt."))
+    func cancelledSignatureIsUserCanceled() throws {
+        defer { try? keychain.delete(matching: keys) }
+        let context = LAContext()
+        context.localizedReason = "Cancel this prompt."
+        let key = try keychain.generateSecureEnclaveKey(
+            applicationTag: tag,
+            constraints: .devicePasscode,
+            authenticationContext: AuthenticationContext(context),
+        )
+
+        #expect(rawSignatureFailure(of: key) == RawFailure(domain: LAErrorDomain, code: LAError.Code.userCancel.rawValue))
+        #expect(throws: KeychainError(code: .userCanceled)) {
+            try key.signature(for: digest, using: .ecdsaSignatureDigestX962SHA256)
+        }
+    }
+
+    /// The token session, not LocalAuthentication, reports a context that was invalidated: the
+    /// one failure of a Secure Enclave key here that arrives in the CryptoTokenKit domain, as a
+    /// communication error. It needs nobody to answer a prompt.
+    @Test func signatureWithInvalidatedContextIsInternalError() throws {
+        defer { try? keychain.delete(matching: keys) }
+        let context = LAContext()
+        let key = try keychain.generateSecureEnclaveKey(
+            applicationTag: tag,
+            constraints: .userPresence,
+            authenticationContext: AuthenticationContext(context),
+        )
+        context.invalidate()
+
+        #expect(rawSignatureFailure(of: key) == RawFailure(domain: TKErrorDomain, code: TKError.Code.communicationError.rawValue))
+        #expect(throws: KeychainError(code: .internalError)) {
+            try key.signature(for: digest, using: .ecdsaSignatureDigestX962SHA256)
         }
     }
 }

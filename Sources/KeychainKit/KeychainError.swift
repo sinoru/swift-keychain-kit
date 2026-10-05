@@ -122,6 +122,12 @@ extension KeychainError {
     /// that leaves without a status of its own, an error in any other domain included, is an
     /// internal error. A missing error is reported as an invalid parameter.
     ///
+    /// Measured on iPadOS 27 with a signature by a Secure Enclave key that asks for the user:
+    /// a context that does not allow interaction is LocalAuthentication's -1004, a cancelled
+    /// prompt its -2, and a context that was invalidated CryptoTokenKit's -2, a communication
+    /// error. Biometry that does not match is no error of its own: the prompt offers another
+    /// try until it is cancelled.
+    ///
     /// The domains are compared by name, which needs neither framework and so also works where
     /// LocalAuthentication is unavailable.
     init(cfError: CFError?) {
