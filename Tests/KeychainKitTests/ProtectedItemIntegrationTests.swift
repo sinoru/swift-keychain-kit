@@ -6,31 +6,11 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
-#if canImport(LocalAuthentication) && !os(tvOS) && !os(macOS) && !targetEnvironment(macCatalyst)
 import Foundation
-import LocalAuthentication
 import Security
 import Testing
 
 @testable import KeychainKit
-
-/// Whether this device enforces an access control that asks for the user.
-///
-/// A simulator with no passcode and no enrolled biometrics accepts such an access control and
-/// then ignores it: the item is read with no prompt (measured on the iOS 27 simulator). Only a
-/// device with a passcode, or a simulator with Face ID enrolled, says anything about a protected
-/// item.
-enum DeviceAuthentication {
-    static let isEnforced = LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
-}
-
-/// Whether the person running the tests agreed to answer an authentication prompt.
-///
-/// Set `KEYCHAINKIT_ALLOW_PROMPT` in the scheme's test environment, or pass
-/// `TEST_RUNNER_KEYCHAINKIT_ALLOW_PROMPT=1` to `xcodebuild`.
-enum AuthenticationPrompt {
-    static let isAllowed = ProcessInfo.processInfo.environment["KEYCHAINKIT_ALLOW_PROMPT"] != nil
-}
 
 /// Searches for generic passwords with the raw request, so each test states the exact keys it
 /// measures.
@@ -41,6 +21,7 @@ private struct PasswordSearch {
         var query: SecDictionary = [
             SecItemKey(kSecClass): .string(kSecClassGenericPassword as String),
             SecItemKey(kSecAttrService): .string(service),
+            SecItemKey(kSecUseDataProtectionKeychain): .bool(true),
         ]
         if let account {
             query[SecItemKey(kSecAttrAccount)] = .string(account)
@@ -71,7 +52,10 @@ private struct PasswordSearch {
 /// What the data protection keychain does when one search asks for the data of every password.
 ///
 /// Apple documents `kSecReturnData` with `kSecMatchLimitAll` as unavailable for password items.
-/// No protected item is involved, so this runs wherever the keychain is reachable.
+/// No protected item is involved, so this runs wherever the keychain is reachable. That includes
+/// a Mac, when the tests are hosted in an app signed by a team: the passwords then go into the
+/// data protection keychain of the person running the tests, in the test app's access group,
+/// and are removed again.
 @Suite(.enabled(if: DataProtectionKeychain.isReachable, "The data protection keychain needs a host app."))
 struct PasswordDataSearchIntegrationTests {
     private let keychain = Keychain()
@@ -89,7 +73,29 @@ struct PasswordDataSearchIntegrationTests {
             SecItemKey(kSecMatchLimit): .string(kSecMatchLimitAll as String),
         ])
         #expect(PasswordSearch.accountsAndData(in: result) == ["one": Data("1".utf8), "two": Data("2".utf8)])
+        #expect(Set(try keychain.all(matching: Query<GenericPassword>(service: service)).compactMap(\.password)) == ["1", "2"])
     }
+}
+
+#if canImport(LocalAuthentication) && !os(tvOS) && !os(macOS) && !targetEnvironment(macCatalyst)
+import LocalAuthentication
+
+/// Whether this device enforces an access control that asks for the user.
+///
+/// A simulator with no passcode and no enrolled biometrics accepts such an access control and
+/// then ignores it: the item is read with no prompt (measured on the iOS 27 simulator). Only a
+/// device with a passcode, or a simulator with Face ID enrolled, says anything about a protected
+/// item.
+enum DeviceAuthentication {
+    static let isEnforced = LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
+}
+
+/// Whether the person running the tests agreed to answer an authentication prompt.
+///
+/// Set `KEYCHAINKIT_ALLOW_PROMPT` in the scheme's test environment, or pass
+/// `TEST_RUNNER_KEYCHAINKIT_ALLOW_PROMPT=1` to `xcodebuild`.
+enum AuthenticationPrompt {
+    static let isAllowed = ProcessInfo.processInfo.environment["KEYCHAINKIT_ALLOW_PROMPT"] != nil
 }
 
 /// What the data protection keychain does with a password that asks for the user.

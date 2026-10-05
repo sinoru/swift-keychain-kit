@@ -14,17 +14,23 @@ import KeychainKit
 /// Whether this process can use the data protection keychain.
 ///
 /// A test bundle that runs in a host app can. One that runs in the bare `xctest` runner cannot:
-/// every call fails with `errSecMissingEntitlement`, and signing the bundle with entitlements
-/// does not change that (measured on the iOS 27 simulator). The package's own test runs are of
-/// the second kind, so the suites below are skipped there and run from `Xcode/KeychainKit.xcodeproj`,
-/// whose tests are hosted in an app.
+/// signing the bundle with entitlements does not change that (measured on the iOS 27 simulator).
+/// The package's own test runs are of the second kind, so the suites that need the keychain are
+/// skipped there and run from `Xcode/KeychainKit.xcodeproj`, whose tests are hosted in an app.
+///
+/// The probe adds a password and removes it. A search does not tell the two apart on a Mac,
+/// where one that has no access group to look in finds nothing without complaint and only the
+/// add fails with `errSecMissingEntitlement` (measured on macOS 27).
 enum DataProtectionKeychain {
     static let isReachable: Bool = {
-        do {
-            _ = try Keychain().attributes(matching: Query(service: "dev.sinoru.KeychainKit.tests.probe"))
+        let keychain = Keychain()
+        let probe = Query<GenericPassword>(service: "dev.sinoru.KeychainKit.tests.probe")
+        defer { try? keychain.delete(matching: probe) }
+        do throws(KeychainError) {
+            try keychain.add(Item(service: "dev.sinoru.KeychainKit.tests.probe", account: "probe", password: ""))
             return true
         } catch {
-            return false
+            return error.code == .duplicateItem
         }
     }()
 }
