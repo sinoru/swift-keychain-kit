@@ -38,7 +38,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/sinoru/swift-core-foundation-kit.git",
-            from: "0.0.2"
+            from: "0.1.0"
         ),
     ],
     targets: [

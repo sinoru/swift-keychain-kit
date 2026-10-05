@@ -60,11 +60,15 @@ import Testing
         #expect(SecValue(cf: UInt32.max as CFNumber) == .integer(Int64(UInt32.max)))
     }
 
-    @Test func numbersAreIntegersOnlyWhenExact() {
+    @Test func numbersAreIntegersOnlyWhenStoredAsIntegers() {
         #expect(SecValue(cf: NSNumber(value: Int64.min)) == .integer(.min))
         #expect(SecValue(cf: NSNumber(value: Int64.max)) == .integer(.max))
-        #expect(SecValue(cf: NSNumber(value: 2.0)) == .integer(2))
+        #expect(SecValue(cf: NSNumber(value: -1)) == .integer(-1))
 
+        // The keychain hands back a number of the type it stored, so a floating-point one is
+        // not an integer attribute even when its value is whole.
+        let whole = NSNumber(value: 2.0)
+        #expect(SecValue(cf: whole) == .object(SecObject(whole)))
         let fraction = NSNumber(value: 1.5)
         #expect(SecValue(cf: fraction) == .object(SecObject(fraction)))
         let beyondInt64 = NSNumber(value: UInt64.max)
