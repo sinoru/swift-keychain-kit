@@ -149,8 +149,11 @@ item.attributes.protection = .accessible(.whenPasscodeSetThisDeviceOnly)
 let control = try AccessControl(accessibility: .whenUnlocked, flags: [.biometryCurrentSet, .or, .devicePasscode])
 item.attributes.protection = .accessControl(control)
 
-var query = Query(service: "com.example.bank", account: "alice")
-query.authenticationContext = AuthenticationContext(context)   // an LAContext you configured
+let query = Query(service: "com.example.bank", account: "alice")
+let item = try keychain.fetchFirst(
+    matching: query,
+    authenticationContext: AuthenticationContext(context),   // an LAContext you configured
+)
 ```
 
 ### Sharing and storage

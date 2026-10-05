@@ -19,8 +19,9 @@ public import LocalAuthentication
 /// flight. The framework reads it once per call and this library never retains it past the
 /// call, which is the basis for the unchecked `Sendable` conformance. Compares by identity.
 ///
-/// Unavailable on tvOS: its simulator SDK ships the framework, but `LAContext` itself is
-/// marked unavailable there, so `canImport` alone is not a sufficient guard.
+/// On tvOS this is a type without values, so every `authenticationContext` parameter takes only
+/// `nil` there. Its simulator SDK ships the framework, but `LAContext` itself is marked
+/// unavailable, so `canImport` alone is not a sufficient guard.
 public struct AuthenticationContext: Hashable, @unchecked Sendable {
     /// The wrapped context.
     public let context: LAContext
@@ -40,6 +41,21 @@ public struct AuthenticationContext: Hashable, @unchecked Sendable {
 
     var secValue: SecValue {
         .object(SecObject(context))
+    }
+
+    /// Puts the context into the dictionary for a `SecItem*` or `SecKey*` call.
+    func apply(to dictionary: inout SecDictionary) {
+        dictionary[.useAuthenticationContext] = secValue
+    }
+}
+#else
+/// The stand-in for an `LAContext` wrapper where `LAContext` is unavailable.
+///
+/// It has no cases, so no value of it can be made and every `authenticationContext` parameter
+/// takes only `nil`. It exists so that each operation has one signature on every platform.
+public enum AuthenticationContext: Hashable, Sendable {
+    func apply(to dictionary: inout SecDictionary) {
+        switch self {}
     }
 }
 #endif

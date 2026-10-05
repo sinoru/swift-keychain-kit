@@ -118,7 +118,7 @@ import Testing
     @Test func dataQueryNamesTheItemByReference() {
         let keychain = Keychain(storage: .fileBased())
         let reference = PersistentReference(rawValue: Data([7]))
-        let dataQuery = keychain.dataQuery(for: reference, inheriting: query)
+        let dataQuery: Query<GenericPassword> = keychain.dataQuery(for: reference)
         #expect(dataQuery.persistentReference == reference)
         #expect(dataQuery.synchronizable == .any)
         #expect(dataQuery.accessGroup == nil)

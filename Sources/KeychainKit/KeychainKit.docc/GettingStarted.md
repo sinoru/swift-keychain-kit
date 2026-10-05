@@ -98,9 +98,8 @@ To read such an item without a second prompt, or to control the prompt, pass an
 let context = LAContext()
 context.localizedReason = "Unlock your account"
 
-var query = Query(service: "com.example.bank", account: "alice")
-query.authenticationContext = AuthenticationContext(context)
-let item = try keychain.fetchFirst(matching: query)
+let query = Query(service: "com.example.bank", account: "alice")
+let item = try keychain.fetchFirst(matching: query, authenticationContext: AuthenticationContext(context))
 ```
 
 ### Share items between your apps

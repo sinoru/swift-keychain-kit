@@ -9,7 +9,6 @@
 public import Foundation
 
 extension Keychain {
-    #if canImport(LocalAuthentication) && !os(tvOS)
     /// Generates a private key and stores it in the keychain (`SecKeyCreateRandomKey`).
     ///
     /// `attributes` describe the stored private key: give it an `applicationTag` or a `label` to
@@ -31,24 +30,6 @@ extension Keychain {
         try storage.validate(parameters)
         return try KeyReference(generatingWith: parameters)
     }
-    #else
-    /// Generates a private key and stores it in the keychain (`SecKeyCreateRandomKey`).
-    ///
-    /// `attributes` describe the stored private key: give it an `applicationTag` or a `label` to
-    /// find it by later, and a `protection` to restrict its use. The public key is not stored;
-    /// take it from `KeyReference/publicKey` when needed.
-    public func generateKey(
-        _ keyType: KeyType,
-        sizeInBits: Int,
-        attributes: Attributes<CryptographicKey> = Attributes(),
-    ) throws(KeychainError) -> KeyReference {
-        let parameters = generationDictionary(for: keyType, sizeInBits: sizeInBits, attributes: attributes)
-        try storage.validate(parameters)
-        return try KeyReference(generatingWith: parameters)
-    }
-    #endif
-
-    #if canImport(LocalAuthentication) && !os(tvOS)
 
     /// Generates a private key inside the Secure Enclave and stores it in the keychain.
     ///
@@ -82,29 +63,6 @@ extension Keychain {
         )
         return try generateKey(.ecSECPrimeRandom, sizeInBits: 256, attributes: attributes, authenticationContext: authenticationContext)
     }
-    #else
-    /// Generates a private key inside the Secure Enclave and stores it in the keychain.
-    ///
-    /// The type and size are fixed at a 256-bit NIST P curve key, the only kind the Secure
-    /// Enclave works with, and the access control always carries `privateKeyUsage`, to which
-    /// `constraints` adds.
-    public func generateSecureEnclaveKey(
-        applicationTag: Data? = nil,
-        label: String? = nil,
-        accessGroup: AccessGroup? = nil,
-        accessibility: Accessibility = .whenUnlockedThisDeviceOnly,
-        constraints: AccessControl.Flags = [],
-    ) throws(KeychainError) -> KeyReference {
-        let attributes = try Self.secureEnclaveKeyAttributes(
-            applicationTag: applicationTag,
-            label: label,
-            accessGroup: accessGroup,
-            accessibility: accessibility,
-            constraints: constraints,
-        )
-        return try generateKey(.ecSECPrimeRandom, sizeInBits: 256, attributes: attributes)
-    }
-    #endif
 
     /// The attributes of a Secure Enclave key: the token, and an access control that always
     /// carries `privateKeyUsage`.
@@ -126,7 +84,6 @@ extension Keychain {
         return attributes
     }
 
-    #if canImport(LocalAuthentication) && !os(tvOS)
     /// The dictionary for `SecKeyCreateRandomKey`.
     ///
     /// The context goes at the top level. The framework merges the top level into the private
@@ -139,12 +96,9 @@ extension Keychain {
         authenticationContext: AuthenticationContext?,
     ) -> SecDictionary {
         var dictionary = generationDictionary(for: keyType, sizeInBits: sizeInBits, attributes: attributes)
-        if let authenticationContext {
-            dictionary[.useAuthenticationContext] = authenticationContext.secValue
-        }
+        authenticationContext?.apply(to: &dictionary)
         return dictionary
     }
-    #endif
 
     /// The dictionary for `SecKeyCreateRandomKey`, before any authentication context.
     ///

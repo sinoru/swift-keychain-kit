@@ -184,10 +184,9 @@ struct ProtectedItemIntegrationTests {
 
         let context = LAContext()
         context.interactionNotAllowed = true
-        var query = Query<GenericPassword>(service: service, account: "protected")
-        query.authenticationContext = AuthenticationContext(context)
+        let query = Query<GenericPassword>(service: service, account: "protected")
         #expect(throws: KeychainError(code: .interactionNotAllowed)) {
-            try keychain.fetchFirstAttributes(matching: query)
+            try keychain.fetchFirstAttributes(matching: query, authenticationContext: AuthenticationContext(context))
         }
     }
 
@@ -244,10 +243,8 @@ struct ProtectedItemIntegrationTests {
 
         let context = LAContext()
         context.interactionNotAllowed = true
-        var query = passwords
-        query.authenticationContext = AuthenticationContext(context)
         #expect(throws: KeychainError(code: .interactionNotAllowed)) {
-            try keychain.fetch(matching: query)
+            try keychain.fetch(matching: passwords, authenticationContext: AuthenticationContext(context))
         }
     }
 

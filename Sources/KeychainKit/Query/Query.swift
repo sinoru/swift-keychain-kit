@@ -25,11 +25,6 @@ public struct Query<Class: ItemClass>: Hashable, Sendable {
     /// Restrict the search to the item a persistent reference points at.
     public var persistentReference: PersistentReference?
 
-    #if canImport(LocalAuthentication) && !os(tvOS)
-    /// The authentication context for items protected by an access control object.
-    public var authenticationContext: AuthenticationContext?
-    #endif
-
     /// A query for items with the given attributes; empty attributes match every item of the class.
     public init(_ attributes: Attributes<Class> = Attributes()) {
         self.attributes = attributes
@@ -52,11 +47,6 @@ public struct Query<Class: ItemClass>: Hashable, Sendable {
         if let persistentReference {
             dictionary[.valuePersistentRef] = .data(persistentReference.rawValue)
         }
-        #if canImport(LocalAuthentication) && !os(tvOS)
-        if let authenticationContext {
-            dictionary[.useAuthenticationContext] = authenticationContext.secValue
-        }
-        #endif
         return dictionary
     }
 }

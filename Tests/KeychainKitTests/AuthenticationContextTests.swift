@@ -22,14 +22,16 @@ import Testing
         return object.reference === context
     }
 
-    @Test func queriesCarryTheContext() {
+    @Test func requestsCarryTheContext() {
         let context = LAContext()
-        var query = Query<GenericPassword>()
-        query.authenticationContext = AuthenticationContext(context)
+        let value = AuthenticationContext(context)
+        let query = Query<GenericPassword>()
         let keychain = Keychain()
-        #expect(isSameContext(keychain.dictionary(for: query)[SecItemKey(kSecUseAuthenticationContext)], as: context))
-        #expect(isSameContext(keychain.requestDictionary(for: query, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationContext)], as: context))
-        #expect(keychain.dictionary(for: Query<GenericPassword>())[SecItemKey(kSecUseAuthenticationContext)] == nil)
+        #expect(isSameContext(keychain.dictionary(for: query, authenticationContext: value)[SecItemKey(kSecUseAuthenticationContext)], as: context))
+        let request = keychain.requestDictionary(for: query, returning: .data, all: false, authenticationContext: value)
+        #expect(isSameContext(request[SecItemKey(kSecUseAuthenticationContext)], as: context))
+        #expect(keychain.dictionary(for: query)[SecItemKey(kSecUseAuthenticationContext)] == nil)
+        #expect(keychain.requestDictionary(for: query, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationContext)] == nil)
     }
 
     @Test func addCarriesTheContext() {
@@ -61,18 +63,6 @@ import Testing
         let without = keychain.generationDictionary(for: .ecSECPrimeRandom, sizeInBits: 256, attributes: attributes, authenticationContext: nil)
         #expect(without[SecItemKey(kSecUseAuthenticationContext)] == nil)
     }
-
-    #if os(macOS)
-    @Test func dataQueriesInheritTheContext() {
-        let context = LAContext()
-        var original = Query<GenericPassword>()
-        original.authenticationContext = AuthenticationContext(context)
-        let keychain = Keychain()
-        let dataQuery = keychain.dataQuery(for: PersistentReference(rawValue: Data([1])), inheriting: original)
-        #expect(dataQuery.authenticationContext == AuthenticationContext(context))
-        #expect(isSameContext(keychain.requestDictionary(for: dataQuery, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationContext)], as: context))
-    }
-    #endif
 
     @Test func comparesByIdentity() {
         let context = LAContext()

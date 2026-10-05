@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   private key and certificate.
 - Item protection through accessibility levels and `AccessControl`, with the level of
   a stored item readable through `Protection.accessibility`, and
-  `AuthenticationContext` for supplying an `LAContext` to a query.
+  `AuthenticationContext` for supplying an `LAContext` to an operation.
 - Access groups for sharing items, and the file-based keychain as an opt-in storage
   on macOS.
 - DocC documentation catalog.
