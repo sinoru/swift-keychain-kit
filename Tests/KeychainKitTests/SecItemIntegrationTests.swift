@@ -77,6 +77,20 @@ import Testing
         }
     }
 
+    /// The file-based keychain refuses the data of every password in one search, with `errSecParam`.
+    @Test func refusesDataForEveryMatch() throws {
+        try withTemporaryKeychain { keychain in
+            try Keychain.secItemAdd(genericPassword(in: keychain))
+            #expect(throws: KeychainError(code: .invalidParameter)) {
+                try Keychain.secItemCopyMatching(query(in: keychain, extra: [
+                    SecItemKey(kSecReturnData): .bool(true),
+                    SecItemKey(kSecReturnAttributes): .bool(true),
+                    SecItemKey(kSecMatchLimit): .string(kSecMatchLimitAll as String),
+                ]))
+            }
+        }
+    }
+
     @Test func updatesData() throws {
         try withTemporaryKeychain { keychain in
             try Keychain.secItemAdd(genericPassword(in: keychain))

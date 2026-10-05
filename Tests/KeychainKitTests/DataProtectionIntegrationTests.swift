@@ -6,7 +6,6 @@
 //  SPDX-License-Identifier: Apache-2.0
 //
 
-#if targetEnvironment(simulator)
 import Foundation
 import Testing
 
@@ -30,6 +29,7 @@ enum DataProtectionKeychain {
     }()
 }
 
+#if targetEnvironment(simulator)
 /// Runs the public `Keychain` API against the data protection keychain of a simulator.
 ///
 /// Only a simulator is used. Its keychain belongs to the simulated device, so nothing here can

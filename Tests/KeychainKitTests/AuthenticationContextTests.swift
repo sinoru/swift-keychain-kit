@@ -62,6 +62,7 @@ import Testing
         #expect(without[SecItemKey(kSecUseAuthenticationContext)] == nil)
     }
 
+    #if os(macOS)
     @Test func dataQueriesInheritTheContextAndTheSkipFlag() {
         let context = LAContext()
         var original = Query<GenericPassword>()
@@ -73,6 +74,7 @@ import Testing
         #expect(dataQuery.skipsItemsRequiringAuthentication)
         #expect(isSameContext(keychain.requestDictionary(for: dataQuery, returning: .data, all: false)[SecItemKey(kSecUseAuthenticationContext)], as: context))
     }
+    #endif
 
     @Test func comparesByIdentity() {
         let context = LAContext()

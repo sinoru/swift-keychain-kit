@@ -43,11 +43,16 @@ import Testing
         #expect(attributes.storage[SecItemKey(kSecValueData)] == nil)
     }
 
+    #if os(macOS)
     @Test func attributesAndReferenceSplitTheAllEntry() throws {
         let (attributes, reference): (Attributes<GenericPassword>, PersistentReference) = try Keychain.attributesAndReference(from: itemDictionary)
         #expect(attributes.service == "service")
         #expect(reference == PersistentReference(rawValue: Data([7])))
+        #expect(throws: KeychainError(code: .decodingFailed)) {
+            try Keychain.attributesAndReference(from: .dictionary([:])) as (Attributes<GenericPassword>, PersistentReference)
+        }
     }
+    #endif
 
     @Test func bareValuesDecode() throws {
         #expect(try Keychain.data(from: .data(Data([1]))) == Data([1]))
@@ -59,7 +64,6 @@ import Testing
         let failure = KeychainError(code: .decodingFailed)
         #expect(throws: failure) { try Keychain.item(from: .data(Data())) as Item<GenericPassword> }
         #expect(throws: failure) { try Keychain.attributes(from: .string("x")) as Attributes<GenericPassword> }
-        #expect(throws: failure) { try Keychain.attributesAndReference(from: .dictionary([:])) as (Attributes<GenericPassword>, PersistentReference) }
         #expect(throws: failure) { try Keychain.data(from: .bool(true)) }
         #expect(throws: failure) { try Keychain.persistentReference(fromAdd: nil) }
     }

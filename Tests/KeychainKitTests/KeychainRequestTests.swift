@@ -80,12 +80,6 @@ import Testing
         let keychain = Keychain(accessGroup: AccessGroup(rawValue: "TEAM.default"))
         let reference = PersistentReference(rawValue: Data([7]))
 
-        let dataRequest = keychain.requestDictionary(for: keychain.dataQuery(for: reference, inheriting: query), returning: .data, all: false)
-        #expect(dataRequest[SecItemKey(kSecValuePersistentRef)] == .data(Data([7])))
-        #expect(dataRequest[SecItemKey(kSecAttrAccessGroup)] == nil)
-        #expect(dataRequest[SecItemKey(kSecAttrSynchronizable)] == .string(kSecAttrSynchronizableAny as String))
-        #expect(dataRequest[SecItemKey(kSecReturnData)] == .bool(true))
-
         var named = Query<GenericPassword>()
         named.persistentReference = reference
         named.accessGroup = AccessGroup(rawValue: "TEAM.shared")
@@ -119,14 +113,23 @@ import Testing
         #endif
     }
 
-    @Test func dataQueryInheritsTheSkipFlag() {
-        let keychain = Keychain()
+    #if os(macOS)
+    /// The file-based keychain's second step names the item by reference, whatever its group
+    /// and whether or not it synchronizes.
+    @Test func dataQueryNamesTheItemByReferenceAndInheritsTheSkipFlag() {
+        let keychain = Keychain(storage: .fileBased())
         var skipping = query
         skipping.skipsItemsRequiringAuthentication = true
         let reference = PersistentReference(rawValue: Data([7]))
         #expect(keychain.dataQuery(for: reference, inheriting: skipping).skipsItemsRequiringAuthentication)
-        #expect(!keychain.dataQuery(for: reference, inheriting: query).skipsItemsRequiringAuthentication)
+
+        let dataQuery = keychain.dataQuery(for: reference, inheriting: query)
+        #expect(!dataQuery.skipsItemsRequiringAuthentication)
+        #expect(dataQuery.persistentReference == reference)
+        #expect(dataQuery.synchronizable == .any)
+        #expect(dataQuery.accessGroup == nil)
     }
+    #endif
 
     @Test func updateSendsOnlyTheChanges() {
         var changes = Item<GenericPassword>(data: Data("new".utf8))

@@ -55,8 +55,8 @@ extension Keychain {
 
     /// The attributes of the first matching item, or `nil` when nothing matches.
     ///
-    /// Reading attributes alone does not prompt for authentication, even for items protected
-    /// by an access control object.
+    /// An item protected by an access control object authenticates for its attributes as it
+    /// does for its data (measured on an iPad with a passcode, iOS 27).
     public func attributes<Class>(matching query: Query<Class>) throws(KeychainError) -> Attributes<Class>? {
         guard let value = try fetch(query, returning: .attributes, all: false) else {
             return nil
@@ -90,13 +90,37 @@ extension Keychain {
 
     /// Every matching item with its attributes and data.
     ///
-    /// The framework does not return data for more than one password item at a time, so this
-    /// fetches the attributes and persistent references in one call and the data of each item
-    /// in a second. An item whose data cannot be fetched in that second call, because the query
-    /// skips items requiring authentication or because the item was removed in between, is left
-    /// out rather than returned without data. Use `allAttributes(matching:)` when the data is
-    /// not needed.
+    /// The data protection keychain returns all of it in one call. An item that requires
+    /// authentication is left out when the query skips such items; otherwise it makes the whole
+    /// call authenticate, or fail with `interactionNotAllowed` when the query's context forbids
+    /// a prompt (measured on an iPad with a passcode, iOS 27).
+    ///
+    /// The file-based keychain on macOS refuses the data of more than one password item at a
+    /// time with `errSecParam`, so there this fetches the attributes and persistent references
+    /// in one call and the data of each item in a second. An item removed in between is left out
+    /// rather than returned without data.
+    ///
+    /// Use `allAttributes(matching:)` when the data is not needed.
     public func all<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
+        #if os(macOS)
+        if case .fileBased = storage {
+            return try allFetchingDataPerItem(matching: query)
+        }
+        #endif
+        guard case .array(let values)? = try fetch(query, returning: [.attributes, .data], all: true) else {
+            return []
+        }
+        var items: [Item<Class>] = []
+        items.reserveCapacity(values.count)
+        for value in values {
+            items.append(try Self.item(from: value))
+        }
+        return items
+    }
+
+    #if os(macOS)
+    /// `all(matching:)` for the file-based keychain: one search, then one data fetch per item.
+    private func allFetchingDataPerItem<Class: PasswordItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
         guard case .array(let values)? = try fetch(query, returning: [.attributes, .persistentReference], all: true) else {
             return []
         }
@@ -111,6 +135,7 @@ extension Keychain {
         }
         return items
     }
+    #endif
 
     /// Every matching item with its attributes and reference, in one call.
     public func all<Class: ReferenceItemClass>(matching query: Query<Class>) throws(KeychainError) -> [Item<Class>] {
@@ -316,13 +341,13 @@ extension Keychain {
         return attributes
     }
 
-    /// The per-item query `all(matching:)` uses to fetch data by persistent reference.
+    #if os(macOS)
+    /// The per-item query `all(matching:)` uses on the file-based keychain to fetch data by
+    /// persistent reference.
     ///
     /// It matches synchronizable items too and inherits the original query's authentication
-    /// settings. Both are needed in the second step: reading attributes does not require
-    /// authentication, so the first call returns protected items even when asked to skip them,
-    /// and it is the data fetch that must skip or authenticate. It names no access group: the
-    /// reference identifies the item whatever group it is in.
+    /// settings. It names no access group: the reference identifies the item whatever group it
+    /// is in.
     package func dataQuery<Class>(
         for reference: PersistentReference,
         inheriting original: Query<Class>,
@@ -331,11 +356,12 @@ extension Keychain {
         query.persistentReference = reference
         query.synchronizable = .any
         query.skipsItemsRequiringAuthentication = original.skipsItemsRequiringAuthentication
-        #if canImport(LocalAuthentication) && !os(tvOS)
+        #if canImport(LocalAuthentication)
         query.authenticationContext = original.authenticationContext
         #endif
         return query
     }
+    #endif
 
     /// Adds the access group and storage entries. A group named by the caller wins over the default.
     private func applyDefaults(to dictionary: inout SecDictionary, forAdding: Bool) {
@@ -393,6 +419,7 @@ extension Keychain {
         return Attributes(secDictionary: dictionary)
     }
 
+    #if os(macOS)
     package static func attributesAndReference<Class>(from value: SecValue) throws(KeychainError) -> (Attributes<Class>, PersistentReference) {
         guard case .dictionary(var dictionary) = value,
               case .data(let reference)? = dictionary.removeValue(forKey: .valuePersistentRef)
@@ -401,6 +428,7 @@ extension Keychain {
         }
         return (Attributes(secDictionary: dictionary), PersistentReference(rawValue: reference))
     }
+    #endif
 
     package static func data(from value: SecValue) throws(KeychainError) -> Data {
         guard case .data(let data) = value else {

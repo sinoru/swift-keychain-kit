@@ -45,15 +45,16 @@ let query = Query(service: "com.example.app", account: "alice")
 
 let item = try keychain.first(matching: query)                 // Item? with attributes and data
 let secret = try keychain.data(matching: query)                // Data?
-let attributes = try keychain.attributes(matching: query)      // Attributes? and no prompt
+let attributes = try keychain.attributes(matching: query)      // Attributes?
 
 let everything = try keychain.all(matching: Query(service: "com.example.app"))   // [Item]
 ```
 
-Reading attributes alone never prompts for authentication, even for items behind an
-access control object. `all(matching:)` fetches each item's data in a second call, because
-the framework returns data for only one password item at a time; use
-`allAttributes(matching:)` when the data is not needed.
+An item behind an access control object authenticates for its attributes as it does for
+its data. `all(matching:)` reads everything in one call on the data protection keychain. The
+file-based keychain on macOS returns data for only one password item at a time, so there it
+fetches each item's data in a second call; use `allAttributes(matching:)` when the data is
+not needed.
 
 ### Update and delete
 
