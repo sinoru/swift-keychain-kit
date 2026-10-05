@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-06
+
 ### Added
 
 - `Keychain` with add, search, update, and delete operations over Keychain Services,
@@ -28,4 +30,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DocC documentation catalog.
 - Support for macOS 12, iOS 15, tvOS 15, watchOS 9, and visionOS 1 with Swift 6.2.
 
-[unreleased]: https://github.com/sinoru/swift-keychain-kit/commits/main
+[unreleased]: https://github.com/sinoru/swift-keychain-kit/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/sinoru/swift-keychain-kit/releases/tag/v1.0.0

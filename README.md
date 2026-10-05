@@ -43,7 +43,7 @@ Add the package to your `Package.swift`, and `KeychainKit` to the target that us
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/sinoru/swift-keychain-kit.git", branch: "main"),
+    .package(url: "https://github.com/sinoru/swift-keychain-kit.git", from: "1.0.0"),
 ]
 ```
 
