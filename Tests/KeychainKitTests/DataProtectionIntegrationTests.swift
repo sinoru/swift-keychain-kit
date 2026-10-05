@@ -304,6 +304,19 @@ struct DataProtectionIntegrationTests {
             try found.externalRepresentation()
         }
     }
+
+    /// A Secure Enclave key always holds an access control with `privateKeyUsage`, which the
+    /// keychain rejects next to an accessibility level.
+    @Test func secureEnclaveKeyThatWasReadCanBeChangedAndPassedBack() throws {
+        defer { try? keychain.delete(matching: keys()) }
+
+        _ = try keychain.generateSecureEnclaveKey(applicationTag: tag, label: "enclave")
+        var item = try #require(try keychain.first(matching: keys()))
+        #expect(item.tokenID == .secureEnclave)
+        item.label = "renamed"
+        try keychain.update(matching: keys(), with: item)
+        #expect(try keychain.attributes(matching: keys())?.label == "renamed")
+    }
 }
 
 /// Certificates and identities on the data protection keychain.
